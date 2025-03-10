@@ -225,7 +225,7 @@ class StatsView(View):
                         inline=True
                     )
 
-            await interaction.edit_original_response(embed=embed, view=self)
+            await interaction.edit_original_response(embed=embed)  # Changed this line
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
@@ -253,11 +253,7 @@ class StatsView(View):
             embed = self.create_boss_embed()
             self.update_buttons()
             
-            try:
-                await interaction.edit_original_response(embed=embed, view=self)
-            except discord.NotFound:
-                # If no original message exists, send a new one
-                await interaction.followup.send(embed=embed, view=self)
+            await interaction.edit_original_response(embed=embed)  # Changed this line
             
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
@@ -286,7 +282,7 @@ class StatsView(View):
             for clue_name, count in valid_clue_data:
                 embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
 
-            await interaction.edit_original_response(embed=embed, view=self)
+            await interaction.edit_original_response(embed=embed)  # Changed this line
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
