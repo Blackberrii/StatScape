@@ -32,11 +32,11 @@ https://discord.com/oauth2/authorize?client_id=1348056629429403668
 
 The bot now uses an interactive menu system with a single command:
 
-* `!stats <username>` - Opens an interactive menu to view all OSRS statistics
+* `!lookup <username>` - Opens an interactive menu to view all OSRS statistics
 
 Example:
 ```
-!stats zezima
+!lookup zezima
 ```
 
 Once the menu appears, you can click buttons to view:
@@ -47,7 +47,7 @@ Once the menu appears, you can click buttons to view:
 ## Interactive Interface
 
 The new button-based interface provides an easier way to view different statistics:
-1. Type `!stats` followed by a player name
+1. Type `!lookup` followed by a player name
 2. Click the buttons to switch between different stat views
 3. For boss kill counts, use the Previous/Next buttons to navigate through pages
 
