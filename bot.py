@@ -161,7 +161,7 @@ async def lookup(ctx, player_name: str):
             await ctx.send(f"Unexpected data format for {player_name}.")
             return
     embed = discord.Embed(title=f"{player_name}'s OSRS Stats", color=discord.Color.green())
-    embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Combat_icon.png/300px-Combat_icon.png")
+    embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
 
     # Add stats for each skill
     for skill_data in data['skills']:
