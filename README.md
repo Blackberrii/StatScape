@@ -2,11 +2,7 @@
 
 A Discord bot for retrieving Old School RuneScape player statistics.
 
-Bot invite link:
-
-https://discord.com/oauth2/authorize?client_id=1348056629429403668
-
-## Setup for personal modifications
+## Setup
 
 1. Clone the repository
 2. Install dependencies:
@@ -27,10 +23,10 @@ https://discord.com/oauth2/authorize?client_id=1348056629429403668
 
 The bot responds to the following commands:
 
-* `!commands` - Shows this list of commands
 * `!lookup <username>` - Displays a player's skill levels, experience, and ranks for all OSRS skills
 * `!bosskc <username>` - Shows kill counts for all OSRS bosses the player has killed
 * `!clues <username>` - Displays the number of completed clue scrolls for each difficulty
+* `!commands` - Shows this list of commands
 
 Example:
 ```
@@ -39,7 +35,7 @@ Example:
 !clues b0aty
 ```
 
-## Cloud Deployment (This bot was made to run on Google Cloud Run)
+## Cloud Deployment
 
 To deploy on Google Cloud Run:
 
