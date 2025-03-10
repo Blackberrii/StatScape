@@ -263,6 +263,12 @@ async def lookup_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("❌ Please provide a username. Example: `!lookup zezima`")
 
+@bot.event
+async def on_ready():
+    """Event handler that runs when the bot successfully connects"""
+    print(f'{bot.user} has connected to Discord!')
+    print(f'Bot is in {len(bot.guilds)} guilds')
+
 # Cloud Run health check server
 async def handle_health_check(request):
     """Health check endpoint for Cloud Run"""
@@ -279,12 +285,18 @@ async def start_server():
     await site.start()
     print(f"Health check server running on port {port}")
 
-# Main bot startup
-async def start_bot():
-    """Initializes both the health check server and Discord bot"""
-    await start_server()
-    await bot.start(bot_token)
+async def main():
+    """Main entry point for running both the health check server and bot"""
+    try:
+        # Start both the health check server and bot concurrently
+        await asyncio.gather(
+            start_server(),
+            bot.start(bot_token)
+        )
+    except KeyboardInterrupt:
+        # Handle graceful shutdown
+        await bot.close()
+        print("Bot shutdown complete")
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(start_bot())
+    asyncio.run(main())
