@@ -119,7 +119,7 @@ bosses = [
 async def get_osrs_data(player_name):
     """Fetches player statistics from OSRS hiscores API"""
     encoded_name = player_name.replace(' ', '%20')
-    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player={encoded_name}"
+    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player={encoded_name}"
     
     max_retries = 3
     retry_delay = 1
@@ -143,55 +143,17 @@ async def get_osrs_data(player_name):
                         return None
 
                     try:
-                        text = await response.text()
-                        lines = text.strip().split('\n')
-                        
-                        # Parse skills (first 24 lines)
-                        skills_data = []
-                        skill_names = ["Overall", "Attack", "Defence", "Strength", "Hitpoints", "Ranged",
-                                     "Prayer", "Magic", "Cooking", "Woodcutting", "Fletching", "Fishing",
-                                     "Firemaking", "Crafting", "Smithing", "Mining", "Herblore", "Agility",
-                                     "Thieving", "Slayer", "Farming", "Runecrafting", "Hunter", "Construction"]
-                        
-                        for i, skill in enumerate(skill_names):
-                            if i < len(lines):
-                                rank, level, xp = map(int, lines[i].split(','))
-                                skills_data.append({
-                                    'name': skill,
-                                    'rank': rank,
-                                    'level': level,
-                                    'xp': xp
-                                })
-
-                        # Parse boss and clue data (remaining lines)
-                        activities_data = []
-                        activity_names = [
-                            # Clue scrolls
-                            "Clue Scrolls (all)", "Clue Scrolls (beginner)", "Clue Scrolls (easy)",
-                            "Clue Scrolls (medium)", "Clue Scrolls (hard)", "Clue Scrolls (elite)",
-                            "Clue Scrolls (master)",
-                            # Bosses (in order of API response)
-                            *bosses
-                        ]
-
-                        for i, activity in enumerate(activity_names, 24):  # Start after skills
-                            if i < len(lines):
-                                try:
-                                    rank, score = map(int, lines[i].split(',')[:2])
-                                    if score > 0:  # Only include non-zero scores
-                                        activities_data.append({
-                                            'name': activity,
-                                            'score': score
-                                        })
-                                except (ValueError, IndexError):
-                                    continue
-
+                        data = await response.json()
+                        if not data:
+                            return None
+                            
+                        # Data is already in the correct format from JSON
                         return {
-                            'skills': skills_data,
-                            'activities': activities_data
+                            'skills': data['skills'],
+                            'activities': data['activities']
                         }
                     except Exception as e:
-                        print(f"Failed to parse data for player '{player_name}': {str(e)}")
+                        print(f"Failed to parse JSON for player '{player_name}': {str(e)}")
                         return None
 
         except asyncio.TimeoutError:
@@ -227,13 +189,13 @@ class StatsView(View):
             embed = discord.Embed(title=f"{self.player_name}'s OSRS Stats", color=discord.Color.green())
             embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
 
-            for skill_data in data['skills']:
-                skill_name = skill_data['name']
+            for skill in data['skills']:
+                skill_name = skill['name']
                 if skill_name in skill_emojis:
                     emoji = skill_emojis[skill_name]
-                    rank = skill_data['rank']
-                    level = skill_data['level']
-                    experience = skill_data['xp']
+                    rank = skill['rank']
+                    level = skill['level']
+                    experience = skill['xp']
                     
                     formatted_experience = f"{int(experience):,}" if isinstance(experience, (int, float)) else "N/A"
                     formatted_rank = f"{int(rank):,}" if isinstance(rank, (int, float)) else "N/A"
