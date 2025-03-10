@@ -275,7 +275,7 @@ async def bosskc(ctx, player_name: str):
     embeds = []
     for page in range(len(boss_chunks)):
         embed = discord.Embed(title=f"{player_name}'s Boss Kill Counts (Page {page + 1} of {len(boss_chunks)})", color=discord.Color.dark_red())
-        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Combat_icon.png/300px-Combat_icon.png")
+        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Slayer_icon_%28detail%29.png?a4903")
 
         chunk = boss_chunks[page]
         for boss, kc in chunk:
