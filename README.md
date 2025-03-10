@@ -1,6 +1,6 @@
 # StatScape Discord Bot
 
-A Discord bot for retrieving Old School RuneScape player statistics like leaderboard stats, boss killcounts and clue scrolls completed.
+A Discord bot for retrieving Old School RuneScape player statistics.
 
 [Invite the bot to your server.](https://discord.com/oauth2/authorize?client_id=1348056629429403668)
 
@@ -11,7 +11,7 @@ A Discord bot for retrieving Old School RuneScape player statistics like leaderb
 
 https://discord.com/oauth2/authorize?client_id=1348056629429403668
 
-## Setup for personal usage
+## Setup
 
 1. Clone the repository
 2. Install dependencies:
@@ -30,21 +30,28 @@ https://discord.com/oauth2/authorize?client_id=1348056629429403668
 
 ## Commands
 
-The bot responds to the following commands:
+The bot now uses an interactive menu system with a single command:
 
-* `!commands` - Shows this list of commands
-* `!lookup <username>` - Displays a player's skill levels, experience, and ranks for all OSRS skills
-* `!bosskc <username>` - Shows kill counts for all OSRS bosses the player has killed
-* `!clues <username>` - Displays the number of completed clue scrolls for each difficulty
+* `!stats <username>` - Opens an interactive menu to view all OSRS statistics
 
 Example:
 ```
-!lookup zezima
-!bosskc woox
-!clues b0aty
+!stats zezima
 ```
 
-## Cloud Deployment for personal usage
+Once the menu appears, you can click buttons to view:
+- Skills - Displays levels, experience, and ranks for all OSRS skills
+- Boss KC - Shows kill counts for all OSRS bosses (with pagination)
+- Clue Scrolls - Displays completed clue scroll counts by difficulty
+
+## Interactive Interface
+
+The new button-based interface provides an easier way to view different statistics:
+1. Type `!stats` followed by a player name
+2. Click the buttons to switch between different stat views
+3. For boss kill counts, use the Previous/Next buttons to navigate through pages
+
+## Cloud Deployment
 
 To deploy on Google Cloud Run:
 
