@@ -118,93 +118,45 @@ bosses = [
 
 async def get_osrs_data(player_name):
     """Fetches player statistics from OSRS hiscores API"""
-    encoded_name = player_name.replace(' ', '_')  # Use underscore instead of %20
-    url = f"https://services.runescape.com/m=hiscore_oldschool/index_lite.ws?player={encoded_name}"
+    encoded_name = player_name.replace(' ', '%20')
+    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player={encoded_name}"
     
     max_retries = 3
     retry_delay = 1
 
     for attempt in range(max_retries):
         try:
-            timeout = aiohttp.ClientTimeout(total=10)  # 10 second timeout
+            timeout = aiohttp.ClientTimeout(total=10)
+            headers = {
+                'User-Agent': 'StatScape Discord Bot',
+                'Accept': 'application/json'
+            }
+            
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers) as response:
                     if response.status == 404:
-                        print(f"Player '{player_name}' not found (404)")
                         return None
-                    if response.status == 429:  # Rate limited
-                        if attempt < max_retries - 1:
-                            print(f"Rate limited, retrying in {retry_delay} seconds...")
-                            await asyncio.sleep(retry_delay)
-                            retry_delay *= 2  # Exponential backoff
-                            continue
-                        else:
-                            print("Rate limit reached, max retries exceeded")
-                            return None
+                        
                     if response.status != 200:
-                        print(f"OSRS API error: HTTP {response.status}")
                         if attempt < max_retries - 1:
                             await asyncio.sleep(retry_delay)
                             continue
-                        return None
-                    
-                    text = await response.text()
-                    if not text.strip():
-                        print(f"Empty response received for player '{player_name}'")
                         return None
 
-                    # Rest of the parsing logic remains the same
-                    lines = text.strip().split("\n")
-                    data = {
-                        'skills': [],
-                        'activities': []
-                    }
-                    
-                    # Parse skills (first 24 lines)
-                    skill_names = list(skill_emojis.keys())
-                    for i, line in enumerate(lines[:24]):
-                        if i >= len(skill_names):
-                            break
-                        rank, level, xp = map(lambda x: int(x) if x != '-1' else 0, line.split(','))
-                        data['skills'].append({
-                            'name': skill_names[i],
-                            'rank': rank,
-                            'level': level,
-                            'xp': xp
-                        })
-                    
-                    # Parse activities (remaining lines)
-                    # First bosses
-                    boss_start = 24
-                    boss_end = boss_start + len(bosses)
-                    for i, line in enumerate(lines[boss_start:boss_end]):
-                        if i >= len(bosses):
-                            break
-                        rank, score, _ = line.split(',')
-                        if rank != '-1':
-                            data['activities'].append({
-                                'name': bosses[i],
-                                'rank': int(rank),
-                                'score': int(score)
-                            })
-                    
-                    # Then clue scrolls
-                    clue_types = ['All', 'Beginner', 'Easy', 'Medium', 'Hard', 'Elite', 'Master']
-                    for i, line in enumerate(lines[boss_end:boss_end+len(clue_types)]):
-                        if i >= len(clue_types):
-                            break
-                        rank, score, _ = line.split(',')
-                        if rank != '-1':
-                            data['activities'].append({
-                                'name': f"Clue Scrolls ({clue_types[i]})",
-                                'rank': int(rank),
-                                'score': int(score)
-                            })
-                    
-                    return data
+                    try:
+                        data = await response.json()
+                        if not data:
+                            return None
+                            
+                        return {
+                            'skills': data.get('skills', []),
+                            'activities': data.get('bosses', []) + data.get('clues', [])
+                        }
+                    except ValueError:
+                        print(f"Failed to parse JSON for player '{player_name}'")
+                        return None
 
         except asyncio.TimeoutError:
-            print(f"Request timed out for player '{player_name}'")
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
                 continue
@@ -346,7 +298,6 @@ class StatsView(View):
 async def lookup(ctx, player_name: str):
     """Shows the main menu for player statistics"""
     try:
-        # Test if player exists first
         data = await get_osrs_data(player_name)
         if not data:
             embed = discord.Embed(
@@ -362,8 +313,7 @@ async def lookup(ctx, player_name: str):
                 inline=False
             )
             embed.set_footer(text="Try again with: !lookup <username>")
-            await ctx.send(embed=embed)
-            return
+            return await ctx.send(embed=embed)
 
         embed = discord.Embed(
             title=f"OSRS Stats Menu - {player_name}",
@@ -374,7 +324,7 @@ async def lookup(ctx, player_name: str):
         embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
         
         view = StatsView(player_name)
-        await ctx.send(embed=embed, view=view)
+        return await ctx.send(embed=embed, view=view)
         
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
