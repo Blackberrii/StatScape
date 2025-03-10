@@ -6,25 +6,18 @@ from dotenv import load_dotenv
 import os
 from aiohttp import web
 
-# Load environment variables from .env file
+# Initialize environment and bot setup
 load_dotenv()
-
-# Get the bot token from the environment variable
-bot_token = os.getenv('DISCORD_BOT_TOKEN')
-
-# Modify the token loading to handle cloud environment
 bot_token = os.getenv('DISCORD_BOT_TOKEN')
 if not bot_token:
     raise ValueError("No Discord bot token provided. Set the DISCORD_BOT_TOKEN environment variable.")
 
-# Create a bot instance with necessary intents
+# Set up bot with message content intent for command handling
 intents = discord.Intents.default()
-# This intent is required to allow the bot to read the content of messages
 intents.message_content = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Custom emoji mappings (leave unchanged)
+# Custom emoji mappings for OSRS skills and bosses
 skill_emojis = {
     "Overall": "<:overall_icon:1348081702244978750>",
     "Attack": "<:Attack_icon:1348081351978520616>",
@@ -122,31 +115,25 @@ bosses = [
 ]
 
 async def get_osrs_data(player_name):
-    """
-    Fetch OSRS data for a given player.
-
-    Parameters:
-    player_name (str): The name of the OSRS player.
-
+    """Fetches player statistics from OSRS hiscores API
+    
+    Args:
+        player_name (str): RuneScape username to look up
+        
     Returns:
-    dict: The OSRS data for the player if successful, None otherwise.
+        dict: Player's hiscores data if found, None if player doesn't exist
     """
     url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player={player_name}"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             if response.status != 200:
                 return None
+            return await response.json()
 
-            data = await response.json()
-
-            # Debugging: Print the raw data
-            print(f"Raw data for {player_name}: {data}")
-
-            return data
-
-# Command to lookup player stats
+# Command handlers
 @bot.command(name="lookup")
 async def lookup(ctx, player_name: str):
+    """Displays a player's skill levels, experience, and ranks"""
     data = await get_osrs_data(player_name)
 
     if not data:
@@ -194,9 +181,9 @@ async def lookup(ctx, player_name: str):
 
     await ctx.send(embed=embed)
 
-# Command to get boss kill counts
 @bot.command(name="bosskc")
 async def bosskc(ctx, player_name: str):
+    """Shows kill counts for all OSRS bosses with pagination"""
     data = await get_osrs_data(player_name)
 
     if not data:
@@ -327,9 +314,9 @@ async def bosskc(ctx, player_name: str):
 
         await message.remove_reaction(reaction, ctx.author)
 
-# Command to get clue scroll counts
 @bot.command(name="clues")
 async def clues(ctx, player_name: str):
+    """Displays completed clue scroll counts by difficulty"""
     data = await get_osrs_data(player_name)
 
     if not data:
@@ -374,9 +361,9 @@ async def clues(ctx, player_name: str):
 
     await ctx.send(embed=embed)
 
-# Change from @bot.command(name="help") to @bot.command(name="commands")
 @bot.command(name="commands")
 async def commands_list(ctx):
+    """Shows available bot commands and usage examples"""
     embed = discord.Embed(
         title="StatScape Bot Commands",
         description="Here are all available commands:",
@@ -409,8 +396,7 @@ async def commands_list(ctx):
     
     await ctx.send(embed=embed)
 
-# Add these error handlers before the start_server function:
-
+# Error handlers for missing username arguments
 @lookup.error
 async def lookup_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
@@ -426,10 +412,13 @@ async def clues_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("❌ Please provide a username. Example: `!clues b0aty`")
 
+# Cloud Run health check server
 async def handle_health_check(request):
+    """Health check endpoint for Cloud Run"""
     return web.Response(text="OK", status=200)
 
 async def start_server():
+    """Starts the health check server required by Cloud Run"""
     app = web.Application()
     app.router.add_get("/", handle_health_check)
     runner = web.AppRunner(app)
@@ -439,9 +428,10 @@ async def start_server():
     await site.start()
     print(f"Health check server running on port {port}")
 
-# Replace the bot.run line at the end with this:
+# Main bot startup
 async def start_bot():
-    await start_server()  # Start the health check server
+    """Initializes both the health check server and Discord bot"""
+    await start_server()
     await bot.start(bot_token)
 
 if __name__ == "__main__":
