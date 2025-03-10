@@ -177,13 +177,15 @@ class StatsView(View):
         self.current_page = 0
         self.boss_chunks = []
         self.original_message = original_message
-        # Add page buttons but hide them initially
-        self.prev_button = Button(label="◀", style=discord.ButtonStyle.secondary, disabled=True, row=1)
-        self.next_button = Button(label="▶", style=discord.ButtonStyle.secondary, disabled=True, row=1)
+        # Add page buttons with arrow emojis
+        self.prev_button = Button(label="←", style=discord.ButtonStyle.secondary, disabled=True, row=1)
+        self.next_button = Button(label="→", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.prev_button.callback = self.prev_page
         self.next_button.callback = self.next_page
-        # Only add navigation buttons when needed
-        self.nav_buttons_added = False
+        # Add navigation buttons immediately
+        self.add_item(self.prev_button)
+        self.add_item(self.next_button)
+        self.nav_buttons_added = True
 
     async def show_menu(self):
         """Creates and returns the initial menu embed"""
@@ -346,11 +348,13 @@ async def lookup(ctx, player_name: str):
                 inline=False
             )
             embed.set_footer(text="Try again with: !lookup <username>")
-            return await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
+            return
 
         view = StatsView(player_name)
         menu_embed = await view.show_menu()
-        await ctx.send(embed=menu_embed, view=view)
+        original_message = await ctx.send(embed=menu_embed, view=view)
+        view.original_message = original_message
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
