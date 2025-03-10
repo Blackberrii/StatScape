@@ -250,10 +250,17 @@ class StatsView(View):
 
             self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
             self.current_page = 0
+            
+            # Add navigation buttons if there are multiple pages and they haven't been added yet
+            if len(self.boss_chunks) > 1 and not self.nav_buttons_added:
+                self.add_item(self.prev_button)
+                self.add_item(self.next_button)
+                self.nav_buttons_added = True
+            
             embed = self.create_boss_embed()
             self.update_buttons()
             
-            await interaction.edit_original_response(embed=embed)  # Changed this line
+            await interaction.edit_original_response(embed=embed, view=self)  # Changed this line
             
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
