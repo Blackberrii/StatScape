@@ -1,7 +1,9 @@
 # StatScape Discord Bot
 
 A Discord bot for retrieving Old School RuneScape player statistics.
+
 Bot invite link:
+
 https://discord.com/oauth2/authorize?client_id=1348056629429403668&permissions=108544&integration_type=0&scope=bot
 
 ## Setup
