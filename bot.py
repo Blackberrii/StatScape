@@ -382,7 +382,17 @@ async def lookup(ctx, player_name: str):
 @lookup.error
 async def lookup_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ Please provide a username. Example: `!lookup zezima`")
+        embed = discord.Embed(
+            title="Missing Username",
+            description="❌ Please provide a username.",
+            color=discord.Color.red()
+        )
+        embed.add_field(
+            name="Example",
+            value="`!lookup zezima`",
+            inline=False
+        )
+        await ctx.send(embed=embed)
 
 @bot.event
 async def on_ready():
