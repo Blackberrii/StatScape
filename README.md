@@ -2,7 +2,7 @@
 
 A Discord bot for retrieving Old School RuneScape player statistics like leaderboard stats, boss killcounts and clue scrolls completed.
 
-[Invite link:](https://discord.com/oauth2/authorize?client_id=1348056629429403668)
+[Invite the bot to your server.](https://discord.com/oauth2/authorize?client_id=1348056629429403668)
 
 
 
