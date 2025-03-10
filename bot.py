@@ -139,9 +139,6 @@ minigames = {
     "Trouble Brewing - Influence",
     "Warriors' Guild Points",
     "Volcanic Mine Points",
-    "Wintertodt",  # Moving these to minigames since they're technically minigame bosses
-    "Tempoross",
-    "Zalcano",
     "Soul Wars Zeal",
     "Guardians of the Rift - Energy Collected"
 }
@@ -409,6 +406,7 @@ class StatsView(View):
 async def lookup(ctx, player_name: str):
     """Shows the main menu for player statistics"""
     try:
+        # Check if player exists first
         data = await get_osrs_data(player_name)
         if not data:
             embed = discord.Embed(
@@ -420,8 +418,10 @@ async def lookup(ctx, player_name: str):
             await ctx.send(embed=embed)
             return
 
+        # Only send one message with the menu
         view = StatsView(player_name)
-        await ctx.send(embed=await view.show_menu(), view=view)
+        initial_embed = await view.show_menu()
+        await ctx.send(embed=initial_embed, view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
