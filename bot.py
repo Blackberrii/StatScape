@@ -116,18 +116,29 @@ bosses = [
     "TzKal-Zuk", "TzTok-Jad", "Venenatis", "Vet'ion", "Vorkath", "Wintertodt", "Zalcano", "Zulrah"
 ]
 
-# Set of known minigames to exclude from boss KC
+# Set of known minigames to exclude from boss KC and show in minigames section
 minigames = {
     "Soul Wars Zeal",
-    "Bounty Hunter - Hunter",
-    "Bounty Hunter - Rogue",
-    "Bounty Hunter (Legacy) - Hunter",
-    "Bounty Hunter (Legacy) - Rogue",
     "Last Man Standing - Rank",
+    "Guardians of the Rift",
+    "Castle Wars Games",
+    "Barbarian Assault - High-level Gambles",
+    "Barbarian Assault - Queen kills",
+    "Barbarian Assault - Defender Level",
+    "Barbarian Assault - Collector Level",
+    "Barbarian Assault - Attacker Level",
+    "Barbarian Assault - Healer Level",
     "League Points",
     "PvP Arena - Rank",
-    "Castle Wars Games",
-    "Easter Egg Dance"
+    "Magic Training Arena - Telekinetic",
+    "Magic Training Arena - Alchemist",
+    "Magic Training Arena - Enchanting",
+    "Magic Training Arena - Graveyard",
+    "Pest Control Games",
+    "Tears of Guthix Score",
+    "Trouble Brewing - Influence",
+    "Warriors' Guild Points",
+    "Volcanic Mine Points"
 }
 
 async def get_osrs_data(player_name):
@@ -327,7 +338,6 @@ class StatsView(View):
                 await interaction.followup.send(f"Could not find minigame data for player '{self.player_name}'.", ephemeral=True)
                 return
 
-            # Remove navigation buttons if they were added
             if self.nav_buttons_added:
                 self.remove_item(self.prev_button)
                 self.remove_item(self.next_button)
@@ -338,10 +348,7 @@ class StatsView(View):
 
             minigame_data = []
             for activity in data['activities']:
-                # Filter for common minigames and exclude bosses/clues
-                if (activity['score'] > 0 and 
-                    'Clue Scrolls' not in activity['name'] and 
-                    activity['name'] not in boss_emojis):
+                if (activity['name'] in minigames and activity['score'] > 0):
                     minigame_data.append((activity['name'], activity['score']))
 
             if not minigame_data:
@@ -417,8 +424,7 @@ async def lookup(ctx, player_name: str):
 
         view = StatsView(player_name)
         menu_embed = await view.show_menu()
-        original_message = await ctx.send(embed=menu_embed, view=view)
-        view.original_message = original_message
+        view.original_message = await ctx.send(embed=menu_embed, view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
