@@ -35,6 +35,31 @@ Example:
 !clues b0aty
 ```
 
+## Cloud Deployment
+
+To deploy on Google Cloud Run:
+
+1. Install Google Cloud CLI
+2. Login to Google Cloud:
+   ```bash
+   gcloud auth login
+   ```
+3. Set your project:
+   ```bash
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+4. Build and deploy:
+   ```bash
+   gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/statscape-bot
+   gcloud run deploy statscape-bot \
+     --image gcr.io/YOUR_PROJECT_ID/statscape-bot \
+     --platform managed \
+     --allow-unauthenticated \
+     --set-env-vars="DISCORD_BOT_TOKEN=your_token_here"
+   ```
+
+Note: Replace YOUR_PROJECT_ID with your Google Cloud project ID
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.

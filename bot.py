@@ -11,11 +11,10 @@ load_dotenv()
 # Get the bot token from the environment variable
 bot_token = os.getenv('DISCORD_BOT_TOKEN')
 
-# Debugging: Print the bot token to verify it's loaded correctly
-if bot_token is None:
-    print("Error: DISCORD_BOT_TOKEN environment variable not found.")
-else:
-    print(f"Bot token: {bot_token}")
+# Modify the token loading to handle cloud environment
+bot_token = os.getenv('DISCORD_BOT_TOKEN')
+if not bot_token:
+    raise ValueError("No Discord bot token provided. Set the DISCORD_BOT_TOKEN environment variable.")
 
 # Create a bot instance with necessary intents
 intents = discord.Intents.default()
