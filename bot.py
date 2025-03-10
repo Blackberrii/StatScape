@@ -117,104 +117,124 @@ bosses = [
 ]
 
 async def get_osrs_data(player_name):
-    """Fetches player statistics from OSRS hiscores API
-    
-    Args:
-        player_name (str): RuneScape username to look up
-        
-    Returns:
-        dict: Player's hiscores data if found, None if player doesn't exist
-    """
+    """Fetches player statistics from OSRS hiscores API"""
     url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player={player_name}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                return None
-            return await response.json()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 404:
+                    return None
+                elif response.status != 200:
+                    raise Exception(f"OSRS API returned status code {response.status}")
+                return await response.json()
+    except Exception as e:
+        print(f"Error fetching OSRS data: {e}")
+        return None
 
 class StatsView(View):
     def __init__(self, player_name: str):
-        super().__init__(timeout=180)  # 3 minute timeout
+        super().__init__(timeout=180)
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
 
     @button(label="Skills", style=discord.ButtonStyle.primary)
     async def skills_button(self, interaction: discord.Interaction, button: Button):
-        data = await get_osrs_data(self.player_name)
-        if not data:
-            await interaction.response.send_message(f"Could not retrieve data for {self.player_name}.", ephemeral=True)
-            return
+        await interaction.response.defer()
+        
+        try:
+            data = await get_osrs_data(self.player_name)
+            if not data:
+                await interaction.followup.send(f"Could not find stats for player '{self.player_name}'.", ephemeral=True)
+                return
 
-        embed = discord.Embed(title=f"{self.player_name}'s OSRS Stats", color=discord.Color.green())
-        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
+            embed = discord.Embed(title=f"{self.player_name}'s OSRS Stats", color=discord.Color.green())
+            embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
 
-        for skill_data in data['skills']:
-            skill_name = skill_data['name']
-            if skill_name in skill_emojis:
-                emoji = skill_emojis[skill_name]
-                rank = skill_data['rank']
-                level = skill_data['level']
-                experience = skill_data['xp']
-                
-                formatted_experience = f"{int(experience):,}" if isinstance(experience, (int, float)) else "N/A"
-                formatted_rank = f"{int(rank):,}" if isinstance(rank, (int, float)) else "N/A"
-                
-                embed.add_field(
-                    name=f"{emoji} {skill_name}",
-                    value=f"**Level**: {level}\n**XP**: {formatted_experience}\n**Rank**: {formatted_rank}",
-                    inline=True
-                )
+            for skill_data in data['skills']:
+                skill_name = skill_data['name']
+                if skill_name in skill_emojis:
+                    emoji = skill_emojis[skill_name]
+                    rank = skill_data['rank']
+                    level = skill_data['level']
+                    experience = skill_data['xp']
+                    
+                    formatted_experience = f"{int(experience):,}" if isinstance(experience, (int, float)) else "N/A"
+                    formatted_rank = f"{int(rank):,}" if isinstance(rank, (int, float)) else "N/A"
+                    
+                    embed.add_field(
+                        name=f"{emoji} {skill_name}",
+                        value=f"**Level**: {level}\n**XP**: {formatted_experience}\n**Rank**: {formatted_rank}",
+                        inline=True
+                    )
 
-        await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.followup.edit_message(embed=embed, view=self)
+            
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @button(label="Boss KC", style=discord.ButtonStyle.primary)
     async def bosskc_button(self, interaction: discord.Interaction, button: Button):
-        data = await get_osrs_data(self.player_name)
-        if not data:
-            await interaction.response.send_message(f"Could not retrieve data for {self.player_name}.", ephemeral=True)
-            return
-
-        valid_boss_data = []
-        for activity in data['activities']:
-            boss_name = activity['name']
-            if boss_name in boss_emojis:
-                valid_boss_data.append((boss_name, activity['score']))
-
-        if not valid_boss_data:
-            await interaction.response.send_message(f"No boss data found for {self.player_name}.", ephemeral=True)
-            return
-
-        self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
-        embed = self.create_boss_embed()
+        await interaction.response.defer()
         
-        # Add navigation buttons if needed
-        if len(self.boss_chunks) > 1:
-            self.add_item(Button(label="Previous", custom_id="prev_page", style=discord.ButtonStyle.secondary))
-            self.add_item(Button(label="Next", custom_id="next_page", style=discord.ButtonStyle.secondary))
+        try:
+            data = await get_osrs_data(self.player_name)
+            if not data:
+                await interaction.followup.send(f"Could not find boss KC for player '{self.player_name}'.", ephemeral=True)
+                return
 
-        await interaction.response.edit_message(embed=embed, view=self)
+            valid_boss_data = []
+            for activity in data['activities']:
+                boss_name = activity['name']
+                if boss_name in boss_emojis:
+                    valid_boss_data.append((boss_name, activity['score']))
+
+            if not valid_boss_data:
+                await interaction.followup.send(f"No boss data found for {self.player_name}.", ephemeral=True)
+                return
+
+            self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
+            embed = self.create_boss_embed()
+            
+            if len(self.boss_chunks) > 1:
+                self.add_item(Button(label="Previous", custom_id="prev_page", style=discord.ButtonStyle.secondary))
+                self.add_item(Button(label="Next", custom_id="next_page", style=discord.ButtonStyle.secondary))
+
+            await interaction.followup.edit_message(embed=embed, view=self)
+            
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @button(label="Clue Scrolls", style=discord.ButtonStyle.primary)
     async def clues_button(self, interaction: discord.Interaction, button: Button):
-        data = await get_osrs_data(self.player_name)
-        if not data:
-            await interaction.response.send_message(f"Could not retrieve data for {self.player_name}.", ephemeral=True)
-            return
+        await interaction.response.defer()
+        
+        try:
+            data = await get_osrs_data(self.player_name)
+            if not data:
+                await interaction.followup.send(f"Could not find clue scroll data for player '{self.player_name}'.", ephemeral=True)
+                return
 
-        embed = discord.Embed(title=f"{self.player_name}'s Clue Scroll Counts", color=discord.Color.blue())
-        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Clue_scroll.png/300px-Clue_scroll.png")
+            embed = discord.Embed(title=f"{self.player_name}'s Clue Scroll Counts", color=discord.Color.blue())
+            embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Clue_scroll.png/300px-Clue_scroll.png")
 
-        valid_clue_data = []
-        for activity in data['activities']:
-            clue_name = activity['name']
-            if 'clue_scrolls' in clue_name.lower():
-                valid_clue_data.append((clue_name, activity['score']))
+            valid_clue_data = []
+            for activity in data['activities']:
+                clue_name = activity['name']
+                if 'clue_scrolls' in clue_name.lower():
+                    valid_clue_data.append((clue_name, activity['score']))
 
-        for clue_name, count in valid_clue_data:
-            embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
+            if not valid_clue_data:
+                await interaction.followup.send(f"No clue scroll data found for {self.player_name}.", ephemeral=True)
+                return
 
-        await interaction.response.edit_message(embed=embed, view=self)
+            for clue_name, count in valid_clue_data:
+                embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
+
+            await interaction.followup.edit_message(embed=embed, view=self)
+            
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     def create_boss_embed(self):
         embed = discord.Embed(
@@ -243,20 +263,29 @@ class StatsView(View):
             embed = self.create_boss_embed()
             await interaction.response.edit_message(embed=embed, view=self)
 
-# Replace the existing command handlers with a single stats command
 @bot.command(name="lookup")
 async def lookup(ctx, player_name: str):
     """Shows the main menu for player statistics"""
-    embed = discord.Embed(
-        title=f"OSRS Stats Menu - {player_name}",
-        description="Click a button below to view different statistics:",
-        color=discord.Color.blue()
-    )
-    embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls", inline=False)
-    embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
-    
-    view = StatsView(player_name)
-    await ctx.send(embed=embed, view=view)
+    try:
+        # Test if player exists first
+        data = await get_osrs_data(player_name)
+        if not data:
+            await ctx.send(f"❌ Could not find player '{player_name}'. Please check the spelling and try again.")
+            return
+
+        embed = discord.Embed(
+            title=f"OSRS Stats Menu - {player_name}",
+            description="Click a button below to view different statistics:",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls", inline=False)
+        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
+        
+        view = StatsView(player_name)
+        await ctx.send(embed=embed, view=view)
+        
+    except Exception as e:
+        await ctx.send(f"❌ An error occurred: {str(e)}")
 
 @lookup.error
 async def lookup_error(ctx, error):
