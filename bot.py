@@ -137,8 +137,24 @@ class StatsView(View):
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
+        # Add base buttons
+        self.add_item(Button(label="Skills", style=discord.ButtonStyle.primary, custom_id="skills"))
+        self.add_item(Button(label="Boss KC", style=discord.ButtonStyle.primary, custom_id="bosskc"))
+        self.add_item(Button(label="Clue Scrolls", style=discord.ButtonStyle.primary, custom_id="clues"))
 
-    @button(label="Skills", style=discord.ButtonStyle.primary)
+    def update_buttons(self):
+        # Clear all existing items
+        self.clear_items()
+        # Re-add base buttons
+        self.add_item(Button(label="Skills", style=discord.ButtonStyle.primary, custom_id="skills"))
+        self.add_item(Button(label="Boss KC", style=discord.ButtonStyle.primary, custom_id="bosskc"))
+        self.add_item(Button(label="Clue Scrolls", style=discord.ButtonStyle.primary, custom_id="clues"))
+        # Add pagination if needed
+        if len(self.boss_chunks) > 1:
+            self.add_item(Button(label="Previous", style=discord.ButtonStyle.secondary, custom_id="prev", disabled=self.current_page == 0))
+            self.add_item(Button(label="Next", style=discord.ButtonStyle.secondary, custom_id="next", disabled=self.current_page >= len(self.boss_chunks) - 1))
+
+    @discord.ui.button(label="Skills", style=discord.ButtonStyle.primary, custom_id="skills")
     async def skills_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
         
@@ -173,7 +189,7 @@ class StatsView(View):
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
-    @button(label="Boss KC", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Boss KC", style=discord.ButtonStyle.primary, custom_id="bosskc")
     async def bosskc_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
         
@@ -194,18 +210,15 @@ class StatsView(View):
                 return
 
             self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
+            self.current_page = 0
             embed = self.create_boss_embed()
-            
-            if len(self.boss_chunks) > 1:
-                self.add_item(Button(label="Previous", custom_id="prev_page", style=discord.ButtonStyle.secondary))
-                self.add_item(Button(label="Next", custom_id="next_page", style=discord.ButtonStyle.secondary))
-
+            self.update_buttons()
             await interaction.followup.edit_message(embed=embed, view=self)
             
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
-    @button(label="Clue Scrolls", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Clue Scrolls", style=discord.ButtonStyle.primary, custom_id="clues")
     async def clues_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
         
@@ -236,6 +249,22 @@ class StatsView(View):
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary, custom_id="prev")
+    async def prev_button(self, interaction: discord.Interaction, button: Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+            embed = self.create_boss_embed()
+            self.update_buttons()
+            await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary, custom_id="next")
+    async def next_button(self, interaction: discord.Interaction, button: Button):
+        if self.current_page < len(self.boss_chunks) - 1:
+            self.current_page += 1
+            embed = self.create_boss_embed()
+            self.update_buttons()
+            await interaction.response.edit_message(embed=embed, view=self)
+
     def create_boss_embed(self):
         embed = discord.Embed(
             title=f"{self.player_name}'s Boss Kill Counts (Page {self.current_page + 1} of {len(self.boss_chunks)})",
@@ -248,20 +277,6 @@ class StatsView(View):
             embed.add_field(name=f"{boss_emojis.get(boss, '')} {boss}", value=f"**Kill Count**: {kc}", inline=True)
         
         return embed
-
-    @button(custom_id="prev_page")
-    async def prev_page(self, interaction: discord.Interaction, button: Button):
-        if self.current_page > 0:
-            self.current_page -= 1
-            embed = self.create_boss_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
-
-    @button(custom_id="next_page")
-    async def next_page(self, interaction: discord.Interaction, button: Button):
-        if self.current_page < len(self.boss_chunks) - 1:
-            self.current_page += 1
-            embed = self.create_boss_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
 
 @bot.command(name="lookup")
 async def lookup(ctx, player_name: str):
