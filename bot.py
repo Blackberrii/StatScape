@@ -138,7 +138,12 @@ minigames = {
     "Tears of Guthix Score",
     "Trouble Brewing - Influence",
     "Warriors' Guild Points",
-    "Volcanic Mine Points"
+    "Volcanic Mine Points",
+    "Wintertodt",  # Moving these to minigames since they're technically minigame bosses
+    "Tempoross",
+    "Zalcano",
+    "Soul Wars Zeal",
+    "Guardians of the Rift - Energy Collected"
 }
 
 async def get_osrs_data(player_name):
@@ -411,20 +416,12 @@ async def lookup(ctx, player_name: str):
                 description=f"❌ Could not find player '{player_name}'.",
                 color=discord.Color.red()
             )
-            embed.add_field(
-                name="Troubleshooting",
-                value="• Check the spelling of the username\n"
-                      "• Make sure the player exists in OSRS\n"
-                      "• Try using their most recent display name",
-                inline=False
-            )
             embed.set_footer(text="Try again with: !lookup <username>")
             await ctx.send(embed=embed)
             return
 
         view = StatsView(player_name)
-        menu_embed = await view.show_menu()
-        view.original_message = await ctx.send(embed=menu_embed, view=view)
+        await ctx.send(embed=await view.show_menu(), view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
