@@ -118,15 +118,48 @@ bosses = [
 
 async def get_osrs_data(player_name):
     """Fetches player statistics from OSRS hiscores API"""
-    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player={player_name}"
+    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player={player_name}"  # Changed URL to correct endpoint
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 404:
                     return None
-                elif response.status != 200:
+                if response.status != 200:
                     raise Exception(f"OSRS API returned status code {response.status}")
-                return await response.json()
+                
+                text = await response.text()
+                lines = text.strip().split("\n")
+                
+                # Parse the data into a structured format
+                data = {
+                    'skills': [],
+                    'activities': []
+                }
+                
+                # First 24 lines are skills
+                for i in range(24):
+                    if i < len(lines):
+                        rank, level, xp = lines[i].split(',')
+                        data['skills'].append({
+                            'name': list(skill_emojis.keys())[i],
+                            'rank': int(rank) if rank != '-1' else 0,
+                            'level': int(level),
+                            'xp': int(xp)
+                        })
+                
+                # Rest are activities (including bosses and clues)
+                for i in range(24, len(lines)):
+                    if i < len(lines):
+                        rank, score = lines[i].split(',')[:2]
+                        name = bosses[i-24] if i-24 < len(bosses) else f"Clue Scrolls ({['All', 'Beginner', 'Easy', 'Medium', 'Hard', 'Elite', 'Master'][i-24-len(bosses)]})"
+                        if int(rank) != -1:  # Only add if there's a valid rank
+                            data['activities'].append({
+                                'name': name,
+                                'rank': int(rank),
+                                'score': int(score)
+                            })
+                
+                return data
     except Exception as e:
         print(f"Error fetching OSRS data: {e}")
         return None
@@ -137,26 +170,6 @@ class StatsView(View):
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
-
-    def update_buttons(self):
-        # Remove existing pagination buttons
-        buttons_to_remove = []
-        for item in self.children:
-            if item.label in ["Previous", "Next"]:
-                buttons_to_remove.append(item)
-        for item in buttons_to_remove:
-            self.remove_item(item)
-
-        # Add pagination if needed
-        if len(self.boss_chunks) > 1:
-            prev_disabled = self.current_page == 0
-            next_disabled = self.current_page >= len(self.boss_chunks) - 1
-            prev_button = Button(label="Previous", style=discord.ButtonStyle.secondary, disabled=prev_disabled)
-            next_button = Button(label="Next", style=discord.ButtonStyle.secondary, disabled=next_disabled)
-            prev_button.callback = self.prev_page
-            next_button.callback = self.next_page
-            self.add_item(prev_button)
-            self.add_item(next_button)
 
     @discord.ui.button(label="Skills", style=discord.ButtonStyle.primary)
     async def skills_button(self, interaction: discord.Interaction, button: Button):
@@ -232,9 +245,8 @@ class StatsView(View):
 
             valid_clue_data = []
             for activity in data['activities']:
-                clue_name = activity['name']
-                if 'clue_scrolls' in clue_name.lower():
-                    valid_clue_data.append((clue_name, activity['score']))
+                if 'Clue Scrolls' in activity['name']:  # Changed condition to match OSRS API response
+                    valid_clue_data.append((activity['name'], activity['score']))
 
             if not valid_clue_data:
                 await interaction.followup.send(f"No clue scroll data found for {self.player_name}.", ephemeral=True)
