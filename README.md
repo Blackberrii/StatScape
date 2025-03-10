@@ -6,7 +6,9 @@ A Discord bot for retrieving Old School RuneScape player statistics like leaderb
 
 
 
+
 (if the button above does not work:)
+
 https://discord.com/oauth2/authorize?client_id=1348056629429403668
 
 ## Setup for personal usage
