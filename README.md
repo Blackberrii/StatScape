@@ -23,6 +23,7 @@ A Discord bot for retrieving Old School RuneScape player statistics.
 
 The bot responds to the following commands:
 
+* `!help` - Displays the list of available commands
 * `!lookup <username>` - Displays a player's skill levels, experience, and ranks for all OSRS skills
 * `!bosskc <username>` - Shows kill counts for all OSRS bosses the player has killed
 * `!clues <username>` - Displays the number of completed clue scrolls for each difficulty
