@@ -116,6 +116,20 @@ bosses = [
     "TzKal-Zuk", "TzTok-Jad", "Venenatis", "Vet'ion", "Vorkath", "Wintertodt", "Zalcano", "Zulrah"
 ]
 
+# Set of known minigames to exclude from boss KC
+minigames = {
+    "Soul Wars Zeal",
+    "Bounty Hunter - Hunter",
+    "Bounty Hunter - Rogue",
+    "Bounty Hunter (Legacy) - Hunter",
+    "Bounty Hunter (Legacy) - Rogue",
+    "Last Man Standing - Rank",
+    "League Points",
+    "PvP Arena - Rank",
+    "Castle Wars Games",
+    "Easter Egg Dance"
+}
+
 async def get_osrs_data(player_name):
     """Fetches player statistics from OSRS hiscores API"""
     encoded_name = player_name.replace(' ', '%20')
@@ -190,7 +204,7 @@ class StatsView(View):
             description="Click a button below to view different statistics:",
             color=discord.Color.blue()
         )
-        embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls", inline=False)
+        embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls\n• Minigame Scores", inline=False)
         embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
         return embed
 
@@ -245,7 +259,8 @@ class StatsView(View):
             valid_boss_data = []
             for activity in data['activities']:
                 boss_name = activity['name']
-                if boss_name in boss_emojis and activity['score'] > 0:  # Only include non-zero scores
+                # Only include if it's a known boss (in boss_emojis), has non-zero score, and is not a minigame
+                if boss_name in boss_emojis and activity['score'] > 0 and boss_name not in minigames:
                     valid_boss_data.append((boss_name, activity['score']))
 
             if not valid_boss_data:
@@ -300,6 +315,47 @@ class StatsView(View):
                 embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
 
             await interaction.edit_original_response(embed=embed, view=self)  # Changed this line
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
+
+    @discord.ui.button(label="Minigame Scores", style=discord.ButtonStyle.primary)
+    async def minigames_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.defer()
+        try:
+            data = await get_osrs_data(self.player_name)
+            if not data:
+                await interaction.followup.send(f"Could not find minigame data for player '{self.player_name}'.", ephemeral=True)
+                return
+
+            # Remove navigation buttons if they were added
+            if self.nav_buttons_added:
+                self.remove_item(self.prev_button)
+                self.remove_item(self.next_button)
+                self.nav_buttons_added = False
+
+            embed = discord.Embed(title=f"{self.player_name}'s Minigame Scores", color=discord.Color.purple())
+            embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Minigames_icon.png")
+
+            minigame_data = []
+            for activity in data['activities']:
+                # Filter for common minigames and exclude bosses/clues
+                if (activity['score'] > 0 and 
+                    'Clue Scrolls' not in activity['name'] and 
+                    activity['name'] not in boss_emojis):
+                    minigame_data.append((activity['name'], activity['score']))
+
+            if not minigame_data:
+                await interaction.followup.send(f"No minigame data found for {self.player_name}.", ephemeral=True)
+                return
+
+            for minigame_name, score in minigame_data:
+                embed.add_field(
+                    name=minigame_name,
+                    value=f"**Score**: {score:,}",
+                    inline=True
+                )
+
+            await interaction.edit_original_response(embed=embed, view=self)
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
