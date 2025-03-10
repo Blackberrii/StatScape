@@ -137,18 +137,16 @@ class StatsView(View):
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
-        # Initialize core buttons without custom_ids
-        self.add_item(Button(label="Skills", style=discord.ButtonStyle.primary))
-        self.add_item(Button(label="Boss KC", style=discord.ButtonStyle.primary))
-        self.add_item(Button(label="Clue Scrolls", style=discord.ButtonStyle.primary))
 
     def update_buttons(self):
-        # Clear all existing items
-        self.clear_items()
-        # Re-add core buttons
-        self.add_item(Button(label="Skills", style=discord.ButtonStyle.primary))
-        self.add_item(Button(label="Boss KC", style=discord.ButtonStyle.primary))
-        self.add_item(Button(label="Clue Scrolls", style=discord.ButtonStyle.primary))
+        # Remove existing pagination buttons
+        buttons_to_remove = []
+        for item in self.children:
+            if item.label in ["Previous", "Next"]:
+                buttons_to_remove.append(item)
+        for item in buttons_to_remove:
+            self.remove_item(item)
+
         # Add pagination if needed
         if len(self.boss_chunks) > 1:
             prev_disabled = self.current_page == 0
@@ -160,11 +158,9 @@ class StatsView(View):
             self.add_item(prev_button)
             self.add_item(next_button)
 
-    # Keep existing button methods but remove custom_ids from decorators
     @discord.ui.button(label="Skills", style=discord.ButtonStyle.primary)
     async def skills_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
-        
         try:
             data = await get_osrs_data(self.player_name)
             if not data:
@@ -191,15 +187,13 @@ class StatsView(View):
                         inline=True
                     )
 
-            await interaction.followup.edit_message(embed=embed, view=self)
-            
+            await interaction.edit_original_response(embed=embed, view=self)
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Boss KC", style=discord.ButtonStyle.primary)
     async def bosskc_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
-        
         try:
             data = await get_osrs_data(self.player_name)
             if not data:
@@ -220,15 +214,13 @@ class StatsView(View):
             self.current_page = 0
             embed = self.create_boss_embed()
             self.update_buttons()
-            await interaction.followup.edit_message(embed=embed, view=self)
-            
+            await interaction.edit_original_response(embed=embed, view=self)
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Clue Scrolls", style=discord.ButtonStyle.primary)
     async def clues_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
-        
         try:
             data = await get_osrs_data(self.player_name)
             if not data:
@@ -251,24 +243,25 @@ class StatsView(View):
             for clue_name, count in valid_clue_data:
                 embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
 
-            await interaction.followup.edit_message(embed=embed, view=self)
-            
+            await interaction.edit_original_response(embed=embed, view=self)
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     async def prev_page(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_boss_embed()
             self.update_buttons()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.edit_original_response(embed=embed, view=self)
 
     async def next_page(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         if self.current_page < len(self.boss_chunks) - 1:
             self.current_page += 1
             embed = self.create_boss_embed()
             self.update_buttons()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.edit_original_response(embed=embed, view=self)
 
     def create_boss_embed(self):
         embed = discord.Embed(
