@@ -5,6 +5,8 @@ import asyncio
 from dotenv import load_dotenv
 import os
 from aiohttp import web
+from discord.ui import View, Button, button
+import discord.ui
 
 # Initialize environment and bot setup
 load_dotenv()
@@ -130,287 +132,136 @@ async def get_osrs_data(player_name):
                 return None
             return await response.json()
 
-# Command handlers
-@bot.command(name="lookup")
-async def lookup(ctx, player_name: str):
-    """Displays a player's skill levels, experience, and ranks"""
-    data = await get_osrs_data(player_name)
+class StatsView(View):
+    def __init__(self, player_name: str):
+        super().__init__(timeout=180)  # 3 minute timeout
+        self.player_name = player_name
+        self.current_page = 0
+        self.boss_chunks = []
 
-    if not data:
-        await ctx.send(f"Could not retrieve data for {player_name}. Please check the username and try again.")
-        return
-    if not isinstance(data.get('skills'), list):
-        await ctx.send(f"Unexpected data format for {player_name}.")
-        return
-
-    for skill_data in data['skills']:
-        if not isinstance(skill_data, dict) or not all(key in skill_data for key in ['name', 'rank', 'level', 'xp']):
-            await ctx.send(f"Unexpected data format for {player_name}.")
+    @button(label="Skills", style=discord.ButtonStyle.primary)
+    async def skills_button(self, interaction: discord.Interaction, button: Button):
+        data = await get_osrs_data(self.player_name)
+        if not data:
+            await interaction.response.send_message(f"Could not retrieve data for {self.player_name}.", ephemeral=True)
             return
-    embed = discord.Embed(title=f"{player_name}'s OSRS Stats", color=discord.Color.green())
-    embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
 
-    # Add stats for each skill
-    for skill_data in data['skills']:
-        skill_name = skill_data['name']
-        if skill_name in skill_emojis:
-            emoji = skill_emojis[skill_name]
-            rank = skill_data['rank']
-            level = skill_data['level']
-            experience = skill_data['xp']
-            
-            # Adding commas to experience and rank
-            try:
-                formatted_experience = f"{int(experience):,}"
-            except ValueError:
-                formatted_experience = "N/A"
-            try:
-                formatted_rank = f"{int(rank):,}"
-            except ValueError:
-                formatted_rank = "N/A"
-            
-            embed.add_field(
-                name=f"{emoji} {skill_name}",
-                value=(
-                    f"**Level**: {level}\n"
-                    f"**XP**: {formatted_experience}\n"
-                    f"**Rank**: {formatted_rank}"
-                ),
-                inline=True  # Makes it inline, creating a column
-            )
+        embed = discord.Embed(title=f"{self.player_name}'s OSRS Stats", color=discord.Color.green())
+        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
 
-    await ctx.send(embed=embed)
+        for skill_data in data['skills']:
+            skill_name = skill_data['name']
+            if skill_name in skill_emojis:
+                emoji = skill_emojis[skill_name]
+                rank = skill_data['rank']
+                level = skill_data['level']
+                experience = skill_data['xp']
+                
+                formatted_experience = f"{int(experience):,}" if isinstance(experience, (int, float)) else "N/A"
+                formatted_rank = f"{int(rank):,}" if isinstance(rank, (int, float)) else "N/A"
+                
+                embed.add_field(
+                    name=f"{emoji} {skill_name}",
+                    value=f"**Level**: {level}\n**XP**: {formatted_experience}\n**Rank**: {formatted_rank}",
+                    inline=True
+                )
 
-@bot.command(name="bosskc")
-async def bosskc(ctx, player_name: str):
-    """Shows kill counts for all OSRS bosses with pagination"""
-    data = await get_osrs_data(player_name)
+        await interaction.response.edit_message(embed=embed, view=self)
 
-    if not data:
-        await ctx.send(f"Could not retrieve data for {player_name}. Please check the username and try again.")
-        return
+    @button(label="Boss KC", style=discord.ButtonStyle.primary)
+    async def bosskc_button(self, interaction: discord.Interaction, button: Button):
+        data = await get_osrs_data(self.player_name)
+        if not data:
+            await interaction.response.send_message(f"Could not retrieve data for {self.player_name}.", ephemeral=True)
+            return
 
-    # Debugging: Print the raw data
-    print(f"Raw data for {player_name}: {data}")
+        valid_boss_data = []
+        for activity in data['activities']:
+            boss_name = activity['name']
+            if boss_name in boss_emojis:
+                valid_boss_data.append((boss_name, activity['score']))
 
-    # Boss kill count indices based on provided references
-    boss_indices = {
-        "Abyssal Sire": "abyssal_sire",
-        "Alchemical Hydra": "alchemical_hydra",
-        "Artio": "artio",
-        "Barrows Chests": "barrows_chests",
-        "Bryophyta": "bryophyta",
-        "Callisto": "callisto",
-        "Calvar'ion": "calvarion",
-        "Cerberus": "cerberus",
-        "Chambers of Xeric": "chambers_of_xeric",
-        "Chambers of Xeric: Challenge Mode": "chambers_of_xeric_challenge_mode",
-        "Chaos Elemental": "chaos_elemental",
-        "Chaos Fanatic": "chaos_fanatic",
-        "Commander Zilyana": "commander_zilyana",
-        "Corporeal Beast": "corporeal_beast",
-        "Crazy Archaeologist": "crazy_archaeologist",
-        "Dagannoth Prime": "dagannoth_prime",
-        "Dagannoth Rex": "dagannoth_rex",
-        "Dagannoth Supreme": "dagannoth_supreme",
-        "Deranged Archaeologist": "deranged_archaeologist",
-        "General Graardor": "general_graardor",
-        "Giant Mole": "giant_mole",
-        "Grotesque Guardians": "grotesque_guardians",
-        "Hespori": "hespori",
-        "Kalphite Queen": "kalphite_queen",
-        "King Black Dragon": "king_black_dragon",
-        "Kraken": "kraken",
-        "Kree'Arra": "kree_arra",
-        "K'ril Tsutsaroth": "kril_tsutsaroth",
-        "Mimic": "mimic",
-        "Nex": "nex",
-        "Nightmare": "nightmare",
-        "Phosani's Nightmare": "phosanis_nightmare",
-        "Obor": "obor",
-        "Sarachnis": "sarachnis",
-        "Scorpia": "scorpia",
-        "Skotizo": "skotizo",
-        "Tempoross": "tempoross",
-        "The Gauntlet": "the_gauntlet",
-        "The Corrupted Gauntlet": "the_corrupted_gauntlet",
-        "Theatre of Blood": "theatre_of_blood",
-        "Theatre of Blood: Hard Mode": "theatre_of_blood_hard_mode",
-        "Thermonuclear Smoke Devil": "thermonuclear_smoke_devil",
-        "Tombs of Amascut": "tombs_of_amascut",
-        "Tombs of Amascut: Expert Mode": "tombs_of_amascut_expert_mode",
-        "TzKal-Zuk": "tzkal_zuk",
-        "TzTok-Jad": "tztok_jad",
-        "Vardorvis": "vardorvis",
-        "Venenatis": "venenatis",
-        "Vet'ion": "vetion",
-        "Vorkath": "vorkath",
-        "Wintertodt": "wintertodt",
-        "Zalcano": "zalcano",
-        "Zulrah": "zulrah"
-    }
+        if not valid_boss_data:
+            await interaction.response.send_message(f"No boss data found for {self.player_name}.", ephemeral=True)
+            return
 
-    # Map boss names to their kill counts
-    valid_boss_data = []
-    for activity in data['activities']:
-        boss_name = activity['name']
-        if boss_name in boss_indices:
-            valid_boss_data.append((boss_name, activity['score']))
+        self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
+        embed = self.create_boss_embed()
+        
+        # Add navigation buttons if needed
+        if len(self.boss_chunks) > 1:
+            self.add_item(Button(label="Previous", custom_id="prev_page", style=discord.ButtonStyle.secondary))
+            self.add_item(Button(label="Next", custom_id="next_page", style=discord.ButtonStyle.secondary))
 
-    # Debugging: Print the valid boss data
-    print(f"Valid boss data for {player_name}: {valid_boss_data}")
+        await interaction.response.edit_message(embed=embed, view=self)
 
-    # Check if there is any valid boss data
-    if not valid_boss_data:
-        await ctx.send(f"No valid boss data found for {player_name}.")
-        return
+    @button(label="Clue Scrolls", style=discord.ButtonStyle.primary)
+    async def clues_button(self, interaction: discord.Interaction, button: Button):
+        data = await get_osrs_data(self.player_name)
+        if not data:
+            await interaction.response.send_message(f"Could not retrieve data for {self.player_name}.", ephemeral=True)
+            return
 
-    # Split the valid boss data into chunks of 8 (for pagination)
-    boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
+        embed = discord.Embed(title=f"{self.player_name}'s Clue Scroll Counts", color=discord.Color.blue())
+        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Clue_scroll.png/300px-Clue_scroll.png")
 
-    # Pagination variables
-    current_page = 0
+        valid_clue_data = []
+        for activity in data['activities']:
+            clue_name = activity['name']
+            if 'clue_scrolls' in clue_name.lower():
+                valid_clue_data.append((clue_name, activity['score']))
 
-    # Cache embeds
-    embeds = []
-    for page in range(len(boss_chunks)):
-        embed = discord.Embed(title=f"{player_name}'s Boss Kill Counts (Page {page + 1} of {len(boss_chunks)})", color=discord.Color.dark_red())
+        for clue_name, count in valid_clue_data:
+            embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
+
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    def create_boss_embed(self):
+        embed = discord.Embed(
+            title=f"{self.player_name}'s Boss Kill Counts (Page {self.current_page + 1} of {len(self.boss_chunks)})",
+            color=discord.Color.dark_red()
+        )
         embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Slayer_icon_%28detail%29.png?a4903")
 
-        chunk = boss_chunks[page]
+        chunk = self.boss_chunks[self.current_page]
         for boss, kc in chunk:
             embed.add_field(name=f"{boss_emojis.get(boss, '')} {boss}", value=f"**Kill Count**: {kc}", inline=True)
         
-        embeds.append(embed)
+        return embed
 
-    # Check if embeds list is empty
-    if not embeds:
-        await ctx.send(f"No valid boss data found for {player_name}.")
-        return
+    @button(custom_id="prev_page")
+    async def prev_page(self, interaction: discord.Interaction, button: Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+            embed = self.create_boss_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
 
-    embed = embeds[current_page]
-    message = await ctx.send(embed=embed)
+    @button(custom_id="next_page")
+    async def next_page(self, interaction: discord.Interaction, button: Button):
+        if self.current_page < len(self.boss_chunks) - 1:
+            self.current_page += 1
+            embed = self.create_boss_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
 
-    # Reactions for pagination
-    await message.add_reaction("⬅️")  # Previous page
-    await message.add_reaction("➡️")  # Next page
-
-    def check(reaction, user):
-        return user == ctx.author and str(reaction.emoji) in ["⬅️", "➡️"] and reaction.message.id == message.id
-
-    while True:
-        try:
-            reaction, _ = await bot.wait_for("reaction_add", check=check, timeout=60.0)  # 60 seconds timeout
-        except asyncio.TimeoutError:
-            break
-
-        if str(reaction.emoji) == "⬅️" and current_page > 0:
-            current_page -= 1
-        elif str(reaction.emoji) == "➡️" and current_page < len(embeds) - 1:
-            current_page += 1
-
-        embed = embeds[current_page]
-        await message.edit(embed=embed)
-
-        await message.remove_reaction(reaction, ctx.author)
-
-@bot.command(name="clues")
-async def clues(ctx, player_name: str):
-    """Displays completed clue scroll counts by difficulty"""
-    data = await get_osrs_data(player_name)
-
-    if not data:
-        await ctx.send(f"Could not retrieve data for {player_name}. Please check the username and try again.")
-        return
-
-    # Debugging: Print the raw data
-    print(f"Raw data for {player_name}: {data}")
-
-    # Clue scroll indices based on provided references
-    clue_indices = {
-        "Clue Scrolls (all)": "clue_scrolls_all",
-        "Clue Scrolls (beginner)": "clue_scrolls_beginner",
-        "Clue Scrolls (easy)": "clue_scrolls_easy",
-        "Clue Scrolls (medium)": "clue_scrolls_medium",
-        "Clue Scrolls (hard)": "clue_scrolls_hard",
-        "Clue Scrolls (elite)": "clue_scrolls_elite",
-        "Clue Scrolls (master)": "clue_scrolls_master"
-    }
-
-    # Map clue scroll names to their counts
-    valid_clue_data = []
-    for activity in data['activities']:
-        clue_name = activity['name']
-        if clue_name in clue_indices:
-            valid_clue_data.append((clue_name, activity['score']))
-
-    # Debugging: Print the valid clue data
-    print(f"Valid clue data for {player_name}: {valid_clue_data}")
-
-    # Check if there is any valid clue data
-    if not valid_clue_data:
-        await ctx.send(f"No valid clue data found for {player_name}.")
-        return
-
-    embed = discord.Embed(title=f"{player_name}'s Clue Scroll Counts", color=discord.Color.blue())
-    embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Clue_scroll.png/300px-Clue_scroll.png")
-
-    # Add counts for each clue scroll type
-    for clue_name, count in valid_clue_data:
-        embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
-
-    await ctx.send(embed=embed)
-
-@bot.command(name="commands")
-async def commands_list(ctx):
-    """Shows available bot commands and usage examples"""
+# Replace the existing command handlers with a single stats command
+@bot.command(name="stats")
+async def stats(ctx, player_name: str):
+    """Shows the main menu for player statistics"""
     embed = discord.Embed(
-        title="StatScape Bot Commands",
-        description="Here are all available commands:",
+        title=f"OSRS Stats Menu - {player_name}",
+        description="Click a button below to view different statistics:",
         color=discord.Color.blue()
     )
+    embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls", inline=False)
+    embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
     
-    embed.add_field(
-        name="!lookup <username>",
-        value="Displays a player's skill levels, experience, and ranks for all OSRS skills",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!bosskc <username>",
-        value="Shows kill counts for all OSRS bosses the player has killed",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!clues <username>",
-        value="Displays the number of completed clue scrolls for each difficulty",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="Example Usage",
-        value="```!lookup zezima\n!bosskc woox\n!clues b0aty```",
-        inline=False
-    )
-    
-    await ctx.send(embed=embed)
+    view = StatsView(player_name)
+    await ctx.send(embed=embed, view=view)
 
-# Error handlers for missing username arguments
-@lookup.error
-async def lookup_error(ctx, error):
+@stats.error
+async def stats_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ Please provide a username. Example: `!lookup zezima`")
-
-@bosskc.error
-async def bosskc_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ Please provide a username. Example: `!bosskc woox`")
-
-@clues.error
-async def clues_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ Please provide a username. Example: `!clues b0aty`")
+        await ctx.send("❌ Please provide a username. Example: `!stats zezima`")
 
 # Cloud Run health check server
 async def handle_health_check(request):
