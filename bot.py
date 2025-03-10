@@ -118,7 +118,9 @@ bosses = [
 
 async def get_osrs_data(player_name):
     """Fetches player statistics from OSRS hiscores API"""
-    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player={player_name}"  # Changed URL to correct endpoint
+    encoded_name = player_name.replace(' ', '%20')
+    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player={encoded_name}"
+    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -128,38 +130,58 @@ async def get_osrs_data(player_name):
                     raise Exception(f"OSRS API returned status code {response.status}")
                 
                 text = await response.text()
+                if not text.strip():
+                    return None
+                    
                 lines = text.strip().split("\n")
-                
-                # Parse the data into a structured format
                 data = {
                     'skills': [],
                     'activities': []
                 }
                 
-                # First 24 lines are skills
-                for i in range(24):
-                    if i < len(lines):
-                        rank, level, xp = lines[i].split(',')
-                        data['skills'].append({
-                            'name': list(skill_emojis.keys())[i],
-                            'rank': int(rank) if rank != '-1' else 0,
-                            'level': int(level),
-                            'xp': int(xp)
+                # Parse skills (first 24 lines)
+                skill_names = list(skill_emojis.keys())
+                for i, line in enumerate(lines[:24]):
+                    if i >= len(skill_names):
+                        break
+                    rank, level, xp = map(lambda x: int(x) if x != '-1' else 0, line.split(','))
+                    data['skills'].append({
+                        'name': skill_names[i],
+                        'rank': rank,
+                        'level': level,
+                        'xp': xp
+                    })
+                
+                # Parse activities (remaining lines)
+                # First bosses
+                boss_start = 24
+                boss_end = boss_start + len(bosses)
+                for i, line in enumerate(lines[boss_start:boss_end]):
+                    if i >= len(bosses):
+                        break
+                    rank, score, _ = line.split(',')
+                    if rank != '-1':
+                        data['activities'].append({
+                            'name': bosses[i],
+                            'rank': int(rank),
+                            'score': int(score)
                         })
                 
-                # Rest are activities (including bosses and clues)
-                for i in range(24, len(lines)):
-                    if i < len(lines):
-                        rank, score = lines[i].split(',')[:2]
-                        name = bosses[i-24] if i-24 < len(bosses) else f"Clue Scrolls ({['All', 'Beginner', 'Easy', 'Medium', 'Hard', 'Elite', 'Master'][i-24-len(bosses)]})"
-                        if int(rank) != -1:  # Only add if there's a valid rank
-                            data['activities'].append({
-                                'name': name,
-                                'rank': int(rank),
-                                'score': int(score)
-                            })
+                # Then clue scrolls
+                clue_types = ['All', 'Beginner', 'Easy', 'Medium', 'Hard', 'Elite', 'Master']
+                for i, line in enumerate(lines[boss_end:boss_end+len(clue_types)]):
+                    if i >= len(clue_types):
+                        break
+                    rank, score, _ = line.split(',')
+                    if rank != '-1':
+                        data['activities'].append({
+                            'name': f"Clue Scrolls ({clue_types[i]})",
+                            'rank': int(rank),
+                            'score': int(score)
+                        })
                 
                 return data
+                
     except Exception as e:
         print(f"Error fetching OSRS data: {e}")
         return None
