@@ -244,8 +244,8 @@ class StatsView(View):
             await interaction.response.edit_message(embed=embed, view=self)
 
 # Replace the existing command handlers with a single stats command
-@bot.command(name="stats")
-async def stats(ctx, player_name: str):
+@bot.command(name="lookup")
+async def lookup(ctx, player_name: str):
     """Shows the main menu for player statistics"""
     embed = discord.Embed(
         title=f"OSRS Stats Menu - {player_name}",
@@ -258,10 +258,10 @@ async def stats(ctx, player_name: str):
     view = StatsView(player_name)
     await ctx.send(embed=embed, view=view)
 
-@stats.error
-async def stats_error(ctx, error):
+@lookup.error
+async def lookup_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ Please provide a username. Example: `!stats zezima`")
+        await ctx.send("❌ Please provide a username. Example: `!lookup zezima`")
 
 # Cloud Run health check server
 async def handle_health_check(request):
