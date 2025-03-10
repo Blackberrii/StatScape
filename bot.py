@@ -4,6 +4,7 @@ import aiohttp
 import asyncio
 from dotenv import load_dotenv
 import os
+from aiohttp import web
 
 # Load environment variables from .env file
 load_dotenv()
@@ -408,5 +409,25 @@ async def commands_list(ctx):
     
     await ctx.send(embed=embed)
 
-# Run the bot with your token (this call blocks and should be the last call in the script)
-bot.run(bot_token)
+# Add this after bot creation but before bot.run
+async def handle_health_check(request):
+    return web.Response(text="OK", status=200)
+
+async def start_server():
+    app = web.Application()
+    app.router.add_get("/", handle_health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", "8080"))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"Health check server running on port {port}")
+
+# Replace the bot.run line at the end with this:
+async def start_bot():
+    await start_server()  # Start the health check server
+    await bot.start(bot_token)
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start_bot())
