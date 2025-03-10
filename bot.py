@@ -177,15 +177,11 @@ class StatsView(View):
         self.current_page = 0
         self.boss_chunks = []
         self.original_message = original_message
-        # Add page buttons with arrow emojis
         self.prev_button = Button(label="←", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.next_button = Button(label="→", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.prev_button.callback = self.prev_page
         self.next_button.callback = self.next_page
-        # Add navigation buttons immediately
-        self.add_item(self.prev_button)
-        self.add_item(self.next_button)
-        self.nav_buttons_added = True
+        self.nav_buttons_added = False
 
     async def show_menu(self):
         """Creates and returns the initial menu embed"""
@@ -207,6 +203,12 @@ class StatsView(View):
                 await interaction.followup.send(f"Could not find stats for player '{self.player_name}'.", ephemeral=True)
                 return
 
+            # Remove navigation buttons if they were added
+            if self.nav_buttons_added:
+                self.remove_item(self.prev_button)
+                self.remove_item(self.next_button)
+                self.nav_buttons_added = False
+
             embed = discord.Embed(title=f"{self.player_name}'s OSRS Stats", color=discord.Color.green())
             embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Skills_icon.png?a8e9f")
 
@@ -227,7 +229,7 @@ class StatsView(View):
                         inline=True
                     )
 
-            await interaction.edit_original_response(embed=embed)  # Changed this line
+            await interaction.edit_original_response(embed=embed, view=self)  # Changed this line
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
@@ -253,7 +255,7 @@ class StatsView(View):
             self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
             self.current_page = 0
             
-            # Add navigation buttons if there are multiple pages and they haven't been added yet
+            # Add navigation buttons only if multiple pages and not already added
             if len(self.boss_chunks) > 1 and not self.nav_buttons_added:
                 self.add_item(self.prev_button)
                 self.add_item(self.next_button)
@@ -276,6 +278,12 @@ class StatsView(View):
                 await interaction.followup.send(f"Could not find clue scroll data for player '{self.player_name}'.", ephemeral=True)
                 return
 
+            # Remove navigation buttons if they were added
+            if self.nav_buttons_added:
+                self.remove_item(self.prev_button)
+                self.remove_item(self.next_button)
+                self.nav_buttons_added = False
+
             embed = discord.Embed(title=f"{self.player_name}'s Clue Scroll Counts", color=discord.Color.blue())
             embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/thumb/Clue_scroll.png/300px-Clue_scroll.png")
 
@@ -291,7 +299,7 @@ class StatsView(View):
             for clue_name, count in valid_clue_data:
                 embed.add_field(name=clue_name, value=f"**Count**: {count}", inline=True)
 
-            await interaction.edit_original_response(embed=embed)  # Changed this line
+            await interaction.edit_original_response(embed=embed, view=self)  # Changed this line
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
