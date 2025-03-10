@@ -176,6 +176,13 @@ class StatsView(View):
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
+        # Add page buttons but disable them initially
+        self.prev_button = Button(label="◀", style=discord.ButtonStyle.secondary, disabled=True, row=1)
+        self.next_button = Button(label="▶", style=discord.ButtonStyle.secondary, disabled=True, row=1)
+        self.prev_button.callback = self.prev_page
+        self.next_button.callback = self.next_page
+        self.add_item(self.prev_button)
+        self.add_item(self.next_button)
 
     @discord.ui.button(label="Skills", style=discord.ButtonStyle.primary)
     async def skills_button(self, interaction: discord.Interaction, button: Button):
@@ -222,7 +229,7 @@ class StatsView(View):
             valid_boss_data = []
             for activity in data['activities']:
                 boss_name = activity['name']
-                if boss_name in boss_emojis:
+                if boss_name in boss_emojis and activity['score'] > 0:  # Only include non-zero scores
                     valid_boss_data.append((boss_name, activity['score']))
 
             if not valid_boss_data:
@@ -233,7 +240,13 @@ class StatsView(View):
             self.current_page = 0
             embed = self.create_boss_embed()
             self.update_buttons()
-            await interaction.edit_original_response(embed=embed, view=self)
+            
+            try:
+                await interaction.edit_original_response(embed=embed, view=self)
+            except discord.NotFound:
+                # If no original message exists, send a new one
+                await interaction.followup.send(embed=embed, view=self)
+            
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
@@ -293,6 +306,11 @@ class StatsView(View):
             embed.add_field(name=f"{boss_emojis.get(boss, '')} {boss}", value=f"**Kill Count**: {kc}", inline=True)
         
         return embed
+
+    def update_buttons(self):
+        """Updates the state of navigation buttons based on current page"""
+        self.prev_button.disabled = self.current_page <= 0
+        self.next_button.disabled = self.current_page >= len(self.boss_chunks) - 1
 
 @bot.command(name="lookup")
 async def lookup(ctx, player_name: str):
