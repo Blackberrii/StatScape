@@ -2,7 +2,7 @@
 
 A Discord bot for retrieving Old School RuneScape player statistics.
 
-## Setup
+## Setup for making your own version of the bot.
 
 1. Clone the repository
 2. Install dependencies:
