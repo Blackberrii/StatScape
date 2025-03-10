@@ -374,8 +374,9 @@ async def clues(ctx, player_name: str):
 
     await ctx.send(embed=embed)
 
-@bot.command(name="help")
-async def help_command(ctx):
+# Change from @bot.command(name="help") to @bot.command(name="commands")
+@bot.command(name="commands")
+async def commands_list(ctx):
     embed = discord.Embed(
         title="StatScape Bot Commands",
         description="Here are all available commands:",
