@@ -119,7 +119,7 @@ bosses = [
 async def get_osrs_data(player_name):
     """Fetches player statistics from OSRS hiscores API"""
     encoded_name = player_name.replace(' ', '%20')
-    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player={encoded_name}"
+    url = f"https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player={encoded_name}"
     
     max_retries = 3
     retry_delay = 1
@@ -128,8 +128,7 @@ async def get_osrs_data(player_name):
         try:
             timeout = aiohttp.ClientTimeout(total=10)
             headers = {
-                'User-Agent': 'StatScape Discord Bot',
-                'Accept': 'application/json'
+                'User-Agent': 'StatScape Discord Bot'
             }
             
             async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -144,16 +143,55 @@ async def get_osrs_data(player_name):
                         return None
 
                     try:
-                        data = await response.json()
-                        if not data:
-                            return None
-                            
+                        text = await response.text()
+                        lines = text.strip().split('\n')
+                        
+                        # Parse skills (first 24 lines)
+                        skills_data = []
+                        skill_names = ["Overall", "Attack", "Defence", "Strength", "Hitpoints", "Ranged",
+                                     "Prayer", "Magic", "Cooking", "Woodcutting", "Fletching", "Fishing",
+                                     "Firemaking", "Crafting", "Smithing", "Mining", "Herblore", "Agility",
+                                     "Thieving", "Slayer", "Farming", "Runecrafting", "Hunter", "Construction"]
+                        
+                        for i, skill in enumerate(skill_names):
+                            if i < len(lines):
+                                rank, level, xp = map(int, lines[i].split(','))
+                                skills_data.append({
+                                    'name': skill,
+                                    'rank': rank,
+                                    'level': level,
+                                    'xp': xp
+                                })
+
+                        # Parse boss and clue data (remaining lines)
+                        activities_data = []
+                        activity_names = [
+                            # Clue scrolls
+                            "Clue Scrolls (all)", "Clue Scrolls (beginner)", "Clue Scrolls (easy)",
+                            "Clue Scrolls (medium)", "Clue Scrolls (hard)", "Clue Scrolls (elite)",
+                            "Clue Scrolls (master)",
+                            # Bosses (in order of API response)
+                            *bosses
+                        ]
+
+                        for i, activity in enumerate(activity_names, 24):  # Start after skills
+                            if i < len(lines):
+                                try:
+                                    rank, score = map(int, lines[i].split(',')[:2])
+                                    if score > 0:  # Only include non-zero scores
+                                        activities_data.append({
+                                            'name': activity,
+                                            'score': score
+                                        })
+                                except (ValueError, IndexError):
+                                    continue
+
                         return {
-                            'skills': data.get('skills', []),
-                            'activities': data.get('bosses', []) + data.get('clues', [])
+                            'skills': skills_data,
+                            'activities': activities_data
                         }
-                    except ValueError:
-                        print(f"Failed to parse JSON for player '{player_name}'")
+                    except Exception as e:
+                        print(f"Failed to parse data for player '{player_name}': {str(e)}")
                         return None
 
         except asyncio.TimeoutError:
