@@ -409,7 +409,23 @@ async def commands_list(ctx):
     
     await ctx.send(embed=embed)
 
-# Add this after bot creation but before bot.run
+# Add these error handlers before the start_server function:
+
+@lookup.error
+async def lookup_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("❌ Please provide a username. Example: `!lookup zezima`")
+
+@bosskc.error
+async def bosskc_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("❌ Please provide a username. Example: `!bosskc woox`")
+
+@clues.error
+async def clues_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("❌ Please provide a username. Example: `!clues b0aty`")
+
 async def handle_health_check(request):
     return web.Response(text="OK", status=200)
 
