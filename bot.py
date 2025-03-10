@@ -171,18 +171,30 @@ async def get_osrs_data(player_name):
     return None
 
 class StatsView(View):
-    def __init__(self, player_name: str):
+    def __init__(self, player_name: str, original_message=None):
         super().__init__(timeout=180)
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
-        # Add page buttons but disable them initially
+        self.original_message = original_message
+        # Add page buttons but hide them initially
         self.prev_button = Button(label="◀", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.next_button = Button(label="▶", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.prev_button.callback = self.prev_page
         self.next_button.callback = self.next_page
-        self.add_item(self.prev_button)
-        self.add_item(self.next_button)
+        # Only add navigation buttons when needed
+        self.nav_buttons_added = False
+
+    async def show_menu(self):
+        """Creates and returns the initial menu embed"""
+        embed = discord.Embed(
+            title=f"OSRS Stats Menu - {self.player_name}",
+            description="Click a button below to view different statistics:",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls", inline=False)
+        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
+        return embed
 
     @discord.ui.button(label="Skills", style=discord.ButtonStyle.primary)
     async def skills_button(self, interaction: discord.Interaction, button: Button):
@@ -333,17 +345,10 @@ async def lookup(ctx, player_name: str):
             embed.set_footer(text="Try again with: !lookup <username>")
             return await ctx.send(embed=embed)
 
-        embed = discord.Embed(
-            title=f"OSRS Stats Menu - {player_name}",
-            description="Click a button below to view different statistics:",
-            color=discord.Color.blue()
-        )
-        embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls", inline=False)
-        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
-        
         view = StatsView(player_name)
-        return await ctx.send(embed=embed, view=view)
-        
+        menu_embed = await view.show_menu()
+        await ctx.send(embed=menu_embed, view=view)
+
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
 
