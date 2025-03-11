@@ -210,12 +210,6 @@ class StatsView(View):
         self.next_button.callback = self.next_page
         self.nav_buttons_added = False
 
-        # Create main menu buttons
-        self.add_item(discord.ui.Button(label="Skills", style=discord.ButtonStyle.primary))
-        self.add_item(discord.ui.Button(label="Boss KC", style=discord.ButtonStyle.primary))
-        self.add_item(discord.ui.Button(label="Clue Scrolls", style=discord.ButtonStyle.primary))
-        self.add_item(discord.ui.Button(label="Minigame Scores", style=discord.ButtonStyle.primary))
-
     def create_initial_embed(self):
         """Creates the initial menu embed"""
         embed = discord.Embed(
