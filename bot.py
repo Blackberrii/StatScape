@@ -422,13 +422,11 @@ async def lookup(ctx, player_name: str):
                 color=discord.Color.red()
             )
             embed.set_footer(text="Try again with: !lookup <username>")
-            await ctx.send(embed=embed)
-            return
+            return await ctx.send(embed=embed)
 
-        # Create view with initial embed
+        # Create and send single menu
         view = StatsView(player_name)
-        message = await ctx.send(embed=view.create_initial_embed(), view=view)
-        view.original_message = message
+        await ctx.send(embed=view.create_initial_embed(), view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
