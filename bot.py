@@ -209,9 +209,10 @@ class StatsView(View):
         self.prev_button.callback = self.prev_page
         self.next_button.callback = self.next_page
         self.nav_buttons_added = False
-
-    async def show_menu(self):
-        """Creates and returns the initial menu embed"""
+        
+    @property
+    def initial_embed(self):
+        """Creates the initial menu embed"""
         embed = discord.Embed(
             title=f"OSRS Stats Menu - {self.player_name}",
             description="Click a button below to view different statistics:",
@@ -418,9 +419,9 @@ async def lookup(ctx, player_name: str):
             await ctx.send(embed=embed)
             return
 
-        # Create view and send menu
+        # Create view and send initial embed with view
         view = StatsView(player_name)
-        await ctx.send(view=view)
+        await ctx.send(embed=view.initial_embed, view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
