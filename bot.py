@@ -227,8 +227,10 @@ class StatsView(View):
         try:
             data = await get_osrs_data(self.player_name)
             if not data:
-                await interaction.followup.send(f"Could not find stats for player '{self.player_name}'.", ephemeral=True)
-                return
+                return await interaction.followup.send(
+                    f"Could not find stats for player '{self.player_name}'.", 
+                    ephemeral=True
+                )
 
             # Remove navigation buttons if they were added
             if self.nav_buttons_added:
@@ -256,9 +258,10 @@ class StatsView(View):
                         inline=True
                     )
 
-            await interaction.edit_original_response(embed=embed, view=self)  # Changed this line
+            return await interaction.edit_original_response(embed=embed, view=self)
+
         except Exception as e:
-            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
+            return await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @discord.ui.button(label="Boss KC", style=discord.ButtonStyle.primary)
     async def bosskc_button(self, interaction: discord.Interaction, button: Button):
