@@ -453,6 +453,16 @@ async def on_ready():
     print(f'{bot.user} has connected to Discord!')
     print(f'Bot is in {len(bot.guilds)} guilds')
 
+@bot.event
+async def on_disconnect():
+    """Event handler that runs when the bot disconnects from Discord"""
+    print('Bot disconnected from Discord')
+
+@bot.event
+async def on_connect():
+    """Event handler that runs when the bot connects to Discord"""
+    print('Bot connected to Discord')
+
 # Cloud Run health check server
 async def handle_health_check(request):
     """Health check endpoint for Cloud Run"""
@@ -472,12 +482,20 @@ async def start_server():
 async def main():
     """Main entry point for running both the health check server and bot"""
     try:
-        # Start both the health check server and bot concurrently
-        await asyncio.gather(
-            start_server(),
-            bot.start(bot_token)
-        )
-    except KeyboardInterrupt:
+        # Start health check server and bot with automatic reconnection
+        while True:
+            try:
+                await asyncio.gather(
+                    start_server(),
+                    bot.start(bot_token)
+                )
+            except (discord.ConnectionClosed, discord.GatewayNotFound, 
+                    discord.HTTPException) as e:
+                print(f"Connection error: {e}. Reconnecting in 5 seconds...")
+                await asyncio.sleep(5)
+            except KeyboardInterrupt:
+                break
+    finally:
         # Handle graceful shutdown
         await bot.close()
         print("Bot shutdown complete")
