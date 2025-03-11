@@ -418,16 +418,10 @@ async def lookup(ctx, player_name: str):
             await ctx.send(embed=embed)
             return
 
-        # Create view and send a single embed
+        # Create view with initial menu embed
         view = StatsView(player_name)
-        embed = discord.Embed(
-            title=f"OSRS Stats Menu - {player_name}",
-            description="Click a button below to view different statistics:",
-            color=discord.Color.blue()
-        )
-        embed.add_field(name="Available Stats", value="• Skills\n• Boss Kill Counts\n• Clue Scrolls\n• Minigame Scores", inline=False)
-        embed.set_thumbnail(url="https://oldschool.runescape.wiki/images/Stats_icon.png?b4e0c")
-        await ctx.send(embed=embed, view=view)
+        initial_embed = await view.show_menu()
+        await ctx.send(embed=initial_embed, view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
