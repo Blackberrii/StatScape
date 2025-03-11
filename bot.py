@@ -418,10 +418,9 @@ async def lookup(ctx, player_name: str):
             await ctx.send(embed=embed)
             return
 
-        # Create view with initial menu embed
+        # Create view and send menu
         view = StatsView(player_name)
-        initial_embed = await view.show_menu()
-        await ctx.send(embed=initial_embed, view=view)
+        await ctx.send(view=view)
 
     except Exception as e:
         await ctx.send(f"❌ An error occurred: {str(e)}")
