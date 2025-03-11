@@ -7,6 +7,9 @@ import os
 from aiohttp import web
 from discord.ui import View, Button, button
 import discord.ui
+import logging
+import random
+from datetime import datetime
 
 # Initialize environment and bot setup
 load_dotenv()
@@ -450,18 +453,23 @@ async def lookup_error(ctx, error):
 @bot.event
 async def on_ready():
     """Event handler that runs when the bot successfully connects"""
-    print(f'{bot.user} has connected to Discord!')
-    print(f'Bot is in {len(bot.guilds)} guilds')
+    logging.info(f'{bot.user} has connected to Discord!')
+    logging.info(f'Bot is in {len(bot.guilds)} guilds')
 
 @bot.event
 async def on_disconnect():
     """Event handler that runs when the bot disconnects from Discord"""
-    print('Bot disconnected from Discord')
+    logging.warning('Bot disconnected from Discord')
 
 @bot.event
 async def on_connect():
     """Event handler that runs when the bot connects to Discord"""
-    print('Bot connected to Discord')
+    logging.info('Bot connected to Discord')
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    """Logs any errors that occur"""
+    logging.error(f'Error in {event}: {args} {kwargs}')
 
 # Cloud Run health check server
 async def handle_health_check(request):
@@ -477,28 +485,66 @@ async def start_server():
     port = int(os.getenv("PORT", "8080"))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    print(f"Health check server running on port {port}")
+    logging.info(f"Health check server running on port {port}")
 
 async def main():
-    """Main entry point for running both the health check server and bot"""
+    """Main entry point with improved error handling and reconnection"""
+    server = None
+    retry_count = 0
+    max_retries = 10
+    
     try:
-        # Start health check server and bot with automatic reconnection
+        # Start health check server first
+        app = web.Application()
+        app.router.add_get("/", handle_health_check)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        port = int(os.getenv("PORT", "8080"))
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+        logging.info(f"Health check server running on port {port}")
+        
         while True:
             try:
-                await asyncio.gather(
-                    start_server(),
-                    bot.start(bot_token)
-                )
-            except (discord.ConnectionClosed, discord.GatewayNotFound, 
-                    discord.HTTPException) as e:
-                print(f"Connection error: {e}. Reconnecting in 5 seconds...")
-                await asyncio.sleep(5)
+                if retry_count >= max_retries:
+                    logging.critical("Maximum retry attempts reached. Shutting down.")
+                    break
+                
+                # Exponential backoff with jitter
+                if retry_count > 0:
+                    delay = min(300, (2 ** retry_count) + (random.randint(0, 1000) / 1000))
+                    logging.info(f"Attempting reconnection in {delay:.2f} seconds...")
+                    await asyncio.sleep(delay)
+                
+                logging.info("Starting bot...")
+                await bot.start(bot_token)
+                
+            except (discord.ConnectionClosed, discord.GatewayNotFound,
+                    discord.HTTPException, aiohttp.ClientError) as e:
+                retry_count += 1
+                logging.error(f"Connection error (attempt {retry_count}/{max_retries}): {str(e)}")
+                
+                if bot.is_closed():
+                    await bot.close()
+                    
             except KeyboardInterrupt:
+                logging.info("Received keyboard interrupt. Shutting down...")
                 break
+                
+            except Exception as e:
+                logging.error(f"Unexpected error: {str(e)}")
+                retry_count += 1
+                
+    except Exception as e:
+        logging.critical(f"Critical error in main loop: {str(e)}")
+        
     finally:
-        # Handle graceful shutdown
-        await bot.close()
-        print("Bot shutdown complete")
+        logging.info("Shutting down...")
+        if not bot.is_closed():
+            await bot.close()
+        if runner:
+            await runner.cleanup()
+        logging.info("Shutdown complete")
 
 if __name__ == "__main__":
     asyncio.run(main())
