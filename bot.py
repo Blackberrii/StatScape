@@ -272,7 +272,6 @@ class StatsView(View):
             valid_boss_data = []
             for activity in data['activities']:
                 boss_name = activity['name']
-                # Only include if it's a known boss (in boss_emojis), has non-zero score, and is not a minigame
                 if boss_name in boss_emojis and activity['score'] > 0 and boss_name not in minigames:
                     valid_boss_data.append((boss_name, activity['score']))
 
@@ -280,20 +279,28 @@ class StatsView(View):
                 await interaction.followup.send(f"No boss data found for {self.player_name}.", ephemeral=True)
                 return
 
+            # Sort boss data by KC in descending order
+            valid_boss_data.sort(key=lambda x: x[1], reverse=True)
+            
+            # Create chunks after sorting
             self.boss_chunks = [valid_boss_data[i:i + 8] for i in range(0, len(valid_boss_data), 8)]
             self.current_page = 0
-            
-            # Add navigation buttons only if multiple pages and not already added
-            if len(self.boss_chunks) > 1 and not self.nav_buttons_added:
+
+            # Handle navigation buttons
+            if not self.nav_buttons_added and len(self.boss_chunks) > 1:
                 self.add_item(self.prev_button)
                 self.add_item(self.next_button)
                 self.nav_buttons_added = True
-            
+            elif len(self.boss_chunks) <= 1 and self.nav_buttons_added:
+                self.remove_item(self.prev_button)
+                self.remove_item(self.next_button)
+                self.nav_buttons_added = False
+
             embed = self.create_boss_embed()
             self.update_buttons()
             
-            await interaction.edit_original_response(embed=embed, view=self)  # Changed this line
-            
+            await interaction.edit_original_response(embed=embed, view=self)
+
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
