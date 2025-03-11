@@ -418,20 +418,22 @@ async def lookup(ctx, player_name: str):
         # Check if player exists first
         data = await get_osrs_data(player_name)
         if not data:
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Player Not Found",
-                    description=f"❌ Could not find player '{player_name}'.",
-                    color=discord.Color.red()
-                ).set_footer(text="Try again with: !lookup <username>")
+            embed = discord.Embed(
+                title="Player Not Found",
+                description=f"❌ Could not find player '{player_name}'.",
+                color=discord.Color.red()
             )
+            embed.set_footer(text="Try again with: !lookup <username>")
+            await ctx.send(embed=embed)
+            return
 
-        # Create and send single menu
+        # Create single menu view
         view = StatsView(player_name)
-        return await ctx.send(embed=view.create_initial_embed(), view=view)
+        embed = view.create_initial_embed()
+        await ctx.send(embed=embed, view=view)
 
     except Exception as e:
-        return await ctx.send(f"❌ An error occurred: {str(e)}")
+        await ctx.send(f"❌ An error occurred: {str(e)}")
 
 @lookup.error
 async def lookup_error(ctx, error):
