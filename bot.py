@@ -198,12 +198,11 @@ async def get_osrs_data(player_name):
     return None
 
 class StatsView(View):
-    def __init__(self, player_name: str, original_message=None):
+    def __init__(self, player_name: str):  # Remove original_message parameter
         super().__init__(timeout=180)
         self.player_name = player_name
         self.current_page = 0
         self.boss_chunks = []
-        self.original_message = original_message
         self.prev_button = Button(label="←", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.next_button = Button(label="→", style=discord.ButtonStyle.secondary, disabled=True, row=1)
         self.prev_button.callback = self.prev_page
@@ -419,20 +418,20 @@ async def lookup(ctx, player_name: str):
         # Check if player exists first
         data = await get_osrs_data(player_name)
         if not data:
-            embed = discord.Embed(
-                title="Player Not Found",
-                description=f"❌ Could not find player '{player_name}'.",
-                color=discord.Color.red()
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Player Not Found",
+                    description=f"❌ Could not find player '{player_name}'.",
+                    color=discord.Color.red()
+                ).set_footer(text="Try again with: !lookup <username>")
             )
-            embed.set_footer(text="Try again with: !lookup <username>")
-            return await ctx.send(embed=embed)
 
         # Create and send single menu
         view = StatsView(player_name)
-        await ctx.send(embed=view.create_initial_embed(), view=view)
+        return await ctx.send(embed=view.create_initial_embed(), view=view)
 
     except Exception as e:
-        await ctx.send(f"❌ An error occurred: {str(e)}")
+        return await ctx.send(f"❌ An error occurred: {str(e)}")
 
 @lookup.error
 async def lookup_error(ctx, error):
