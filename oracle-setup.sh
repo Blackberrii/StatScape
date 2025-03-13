@@ -29,3 +29,5 @@ sudo systemctl start statscape.service
 echo "Installation complete!"
 echo "To check status: sudo systemctl status statscape"
 echo "To view logs: docker logs statscape-bot"
+
+chmod +x oracle-setup.sh deploy.sh

@@ -76,6 +76,73 @@ To deploy on Google Cloud Run:
 
 Note: Replace YOUR_PROJECT_ID with your Google Cloud project ID
 
+# Oracle Cloud Deployment Instructions
+
+1. Create an Oracle Cloud account and access the Always Free tier
+
+2. Create a Compute instance:
+   - Select "Create a VM instance" in the Compute section
+   - Name your instance (e.g., "discord-bot")
+   - Select "Image and shape"
+      - Choose "Oracle Linux 8"
+      - Click "Change Shape"
+      - Under "Instance Type" select "Virtual Machine"
+      - Under "Shape Series" select "Ampere"
+      - Choose "VM.Standard.A1.Flex"
+      - Configure resources:
+         - Number of OCPUs: 1
+         - Amount of memory: 6 GB
+   - Configure networking:
+      - Create a new VCN (Virtual Cloud Network) if none exists
+      - Use default subnet
+      - Assign a public IP
+   - Add SSH keys:
+      - Generate a key pair if you don't have one
+      - Save the private key securely
+   - Configure Advanced Options:
+      - Boot Volume: Use default (50 GB)
+      - Network Setup: Use default VNIC settings
+
+3. Configure security:
+   - Go to Networking > Virtual Cloud Networks > Your VCN
+   - Click on your subnet's Security List
+   - Add Ingress Rules:
+      - Allow TCP ports 80, 443
+      - Allow port 22 (SSH) from your IP only
+   - Open required ports in Ubuntu firewall:
+   ```bash
+   sudo ufw allow 80/tcp
+   sudo ufw allow 443/tcp
+   sudo ufw allow 22/tcp
+   sudo ufw enable
+   ```
+
+4. Deploy the bot:
+   ```bash
+   # Install Docker
+   sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+   sudo dnf install -y docker-ce docker-ce-cli containerd.io
+   sudo systemctl start docker
+   sudo systemctl enable docker
+
+   # Clone your repository
+   git clone <your-repo-url>
+   cd <repo-directory>
+
+   # Set up environment variables
+   cp .env.example .env
+   nano .env  # Edit with your Discord token and other configs
+
+   # Run deployment script
+   chmod +x deploy.sh
+   ./deploy.sh
+   ```
+
+5. Monitor the bot:
+   ```bash
+   docker logs discord-bot
+   ```
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.

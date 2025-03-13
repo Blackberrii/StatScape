@@ -8,7 +8,7 @@ ssh -i ~/.ssh/ssh_key opc@<your-instance-ip>
 2. Install git and clone your repository:
 ```bash
 sudo dnf install -y git
-git clone <your-repo-url> ~/statscape
+git clone https://github.com/Blackberrii/StatScape/ ~/statscape
 cd ~/statscape
 ```
 
