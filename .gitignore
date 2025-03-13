@@ -30,3 +30,10 @@ ENV/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Private keys and configs
+**/private_key*
+**/.*_key*
+**/*instance*.txt
+Host*.txt
+**/RSA*.txt
