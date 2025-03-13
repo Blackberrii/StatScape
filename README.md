@@ -107,4 +107,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## Credits
 - All OSRS-related assets and data belong to [Jagex Ltd](https://www.jagex.com/)
-- Custom emoji assets from [OSRS Wiki](https://oldschool.runescape.wiki/)
+- Emoji assets from [OSRS Wiki](https://oldschool.runescape.wiki/)
