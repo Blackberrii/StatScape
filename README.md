@@ -1,148 +1,111 @@
 # StatScape Discord Bot
 
-A Discord bot for retrieving Old School RuneScape player statistics.
+A Discord bot for retrieving Old School RuneScape player statistics with an interactive menu system.
 
-[Invite the bot to your server.](https://discord.com/oauth2/authorize?client_id=1348056629429403668)
+## Quick Links
+- [Invite Bot to Server](https://discord.com/oauth2/authorize?client_id=1348056629429403668)
+- [Source Code](https://github.com/Blackberrii/StatScape)
 
-
-
-
-(if the button above does not work:)
-
-https://discord.com/oauth2/authorize?client_id=1348056629429403668
-
-## Setup
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Create a `.env` file in the root directory
-4. Add your Discord bot token to the `.env` file:
-   ```properties
-   DISCORD_BOT_TOKEN=your_token_here
-   ```
-5. Run the bot:
-   ```bash
-   python bot.py
-   ```
+## Features
+- Interactive menu system
+- Real-time OSRS stats lookup
+- Boss kill counts with pagination
+- Clue scroll completions
+- Minigame scores
+- Custom OSRS-themed emojis
 
 ## Commands
+The bot uses a simple command system:
+- `!lookup <username>` - Opens an interactive menu showing:
+  - Skills (levels, XP, and ranks)
+  - Boss KC (paginated kill counts)
+  - Clue Scrolls (all difficulty tiers)
+  - Minigame Scores
 
-The bot now uses an interactive menu system with a single command:
+## Local Setup
 
-* `!lookup <username>` - Opens an interactive menu to view all OSRS statistics
-
-Example:
+1. Clone the repository:
+```bash
+git clone https://github.com/blackberrii/StatScape.git
+cd StatScape
 ```
-!lookup zezima
+
+2. Install Python dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-Once the menu appears, you can click buttons to view:
-- Skills - Displays levels, experience, and ranks for all OSRS skills
-- Boss KC - Shows kill counts for all OSRS bosses (with pagination)
-- Clue Scrolls - Displays completed clue scroll counts by difficulty
+3. Set up your environment:
+```bash
+cp .env.example .env
+# Edit .env and add your Discord bot token
+```
 
-## Interactive Interface
+4. Run the bot:
+```bash
+python bot.py
+```
 
-The new button-based interface provides an easier way to view different statistics:
-1. Type `!lookup` followed by a player name
-2. Click the buttons to switch between different stat views
-3. For boss kill counts, use the Previous/Next buttons to navigate through pages
+## Deployment Options
 
-## Cloud Deployment
+### Docker (Recommended)
+```bash
+# Build image
+docker build -t statscape-bot .
 
-To deploy on Google Cloud Run:
+# Run container
+docker run -d \
+  --name statscape-bot \
+  --restart always \
+  --env-file .env \
+  statscape-bot
+```
 
-1. Install Google Cloud CLI
-2. Login to Google Cloud:
-   ```bash
-   gcloud auth login
-   ```
-3. Set your project:
-   ```bash
-   gcloud config set project YOUR_PROJECT_ID
-   ```
-4. Build and deploy:
-   ```bash
-   gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/statscape-bot
-   gcloud run deploy statscape-bot \
-     --image gcr.io/YOUR_PROJECT_ID/statscape-bot \
-     --platform managed \
-     --allow-unauthenticated \
-     --set-env-vars="DISCORD_BOT_TOKEN=your_token_here"
-   ```
+### Oracle Cloud (Free Tier)
+1. Set up an Oracle Cloud instance using the provided setup script:
+```bash
+chmod +x oracle-setup.sh
+./oracle-setup.sh
+```
 
-Note: Replace YOUR_PROJECT_ID with your Google Cloud project ID
+2. Monitor the deployment:
+```bash
+sudo systemctl status statscape
+docker logs statscape-bot
+```
 
-# Oracle Cloud Deployment Instructions
+For detailed Oracle Cloud setup instructions, see [ORACLE_SETUP.md](ORACLE_SETUP.md)
 
-1. Create an Oracle Cloud account and access the Always Free tier
+## Development
 
-2. Create a Compute instance:
-   - Select "Create a VM instance" in the Compute section
-   - Name your instance (e.g., "discord-bot")
-   - Select "Image and shape"
-      - Choose "Oracle Linux 8"
-      - Click "Change Shape"
-      - Under "Instance Type" select "Virtual Machine"
-      - Under "Shape Series" select "Ampere"
-      - Choose "VM.Standard.A1.Flex"
-      - Configure resources:
-         - Number of OCPUs: 1
-         - Amount of memory: 6 GB
-   - Configure networking:
-      - Create a new VCN (Virtual Cloud Network) if none exists
-      - Use default subnet
-      - Assign a public IP
-   - Add SSH keys:
-      - Generate a key pair if you don't have one
-      - Save the private key securely
-   - Configure Advanced Options:
-      - Boot Volume: Use default (50 GB)
-      - Network Setup: Use default VNIC settings
+### Requirements
+- Python 3.8+
+- Discord.py 2.0+
+- aiohttp 3.8.0+
+- python-dotenv
 
-3. Configure security:
-   - Go to Networking > Virtual Cloud Networks > Your VCN
-   - Click on your subnet's Security List
-   - Add Ingress Rules:
-      - Allow TCP ports 80, 443
-      - Allow port 22 (SSH) from your IP only
-   - Open required ports in Ubuntu firewall:
-   ```bash
-   sudo ufw allow 80/tcp
-   sudo ufw allow 443/tcp
-   sudo ufw allow 22/tcp
-   sudo ufw enable
-   ```
+### Environment Variables
+- `DISCORD_BOT_TOKEN` - Your Discord bot token (required)
 
-4. Deploy the bot:
-   ```bash
-   # Install Docker
-   sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
-   sudo dnf install -y docker-ce docker-ce-cli containerd.io
-   sudo systemctl start docker
-   sudo systemctl enable docker
+### Docker Commands
+```bash
+# Rebuild container
+./deploy.sh
 
-   # Clone your repository
-   git clone <your-repo-url>
-   cd <repo-directory>
+# View logs
+docker logs statscape-bot
 
-   # Set up environment variables
-   cp .env.example .env
-   nano .env  # Edit with your Discord token and other configs
+# Restart bot
+docker restart statscape-bot
+```
 
-   # Run deployment script
-   chmod +x deploy.sh
-   ./deploy.sh
-   ```
-
-5. Monitor the bot:
-   ```bash
-   docker logs discord-bot
-   ```
+## Support
+- Found a bug? [Open an issue](https://github.com/Blackberrii/StatScape/issues)
+- Need help? Join our [Discord server](YOUR_DISCORD_LINK)
 
 ## License
-
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+## Credits
+- All OSRS-related assets and data belong to [Jagex Ltd](https://www.jagex.com/)
+- Custom emoji assets from [OSRS Wiki](https://oldschool.runescape.wiki/)
