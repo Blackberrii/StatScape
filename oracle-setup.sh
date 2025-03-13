@@ -11,6 +11,11 @@ echo "Starting and enabling Docker service..."
 sudo systemctl start docker
 sudo systemctl enable docker
 
+# Add user to docker group and refresh group membership
+echo "Setting up Docker permissions..."
+sudo usermod -aG docker opc
+newgrp docker
+
 echo "Creating installation directory..."
 sudo mkdir -p /opt/statscape
 sudo chown -R opc:opc /opt/statscape

@@ -7,11 +7,12 @@ After=docker.service network.target
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/statscape
-ExecStartPre=/usr/bin/docker info
+ExecStartPre=/bin/sh -c 'docker info > /dev/null 2>&1'
 ExecStart=/opt/statscape/deploy.sh
 StandardOutput=journal
 StandardError=journal
 User=opc
+Group=docker
 
 [Install]
 WantedBy=multi-user.target
