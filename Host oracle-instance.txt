@@ -1,0 +1,5 @@
+Host oracle-instance
+    HostName 170.9.241.126
+    User opc
+    IdentityFile ~/.ssh/ssh_key
+    StrictHostKeyChecking no

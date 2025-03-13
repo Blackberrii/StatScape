@@ -1,0 +1,16 @@
+[Unit]
+Description=StatScape Discord Bot
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/statscape
+ExecStart=/opt/statscape/deploy.sh
+StandardOutput=journal
+StandardError=journal
+User=opc
+
+[Install]
+WantedBy=multi-user.target
