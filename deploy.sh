@@ -46,7 +46,8 @@ echo "Starting new container..."
 docker run -d \
     --name statscape-bot \
     --restart always \
-    --env-file .env \
+    --env-file /opt/statscape/.env \
+    --mount type=bind,source=/opt/statscape/.env,target=/app/.env \
     --memory="512m" \
     --memory-swap="1g" \
     statscape-bot
