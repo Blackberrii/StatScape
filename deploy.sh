@@ -34,9 +34,11 @@ sudo mkdir -p /opt/statscape/data
 sudo chown -R opc:opc /opt/statscape
 
 echo "Building Docker image..."
-cp .env .env.docker
+# Debug: Show env file contents (hiding token)
+echo "Checking .env file:"
+cat .env | sed 's/=.*/=HIDDEN/'
+
 docker build -t statscape-bot .
-rm .env.docker
 
 echo "Stopping existing container if running..."
 docker stop statscape-bot 2>/dev/null || true
@@ -46,8 +48,7 @@ echo "Starting new container..."
 docker run -d \
     --name statscape-bot \
     --restart always \
-    --env-file /opt/statscape/.env \
-    --mount type=bind,source=/opt/statscape/.env,target=/app/.env \
+    -e DISCORD_BOT_TOKEN="$(cat .env | grep DISCORD_BOT_TOKEN | cut -d'=' -f2)" \
     --memory="512m" \
     --memory-swap="1g" \
     statscape-bot
