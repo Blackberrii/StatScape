@@ -7,14 +7,14 @@ echo "Installing Docker..."
 sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
 sudo dnf -y install docker-ce docker-ce-cli containerd.io
 
-echo "Starting and enabling Docker service..."
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add user to docker group and refresh group membership
 echo "Setting up Docker permissions..."
 sudo usermod -aG docker opc
-newgrp docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo chmod 666 /var/run/docker.sock
+
+# Ensure group membership is active
+exec sudo su -l opc
 
 echo "Creating installation directory..."
 sudo mkdir -p /opt/statscape
