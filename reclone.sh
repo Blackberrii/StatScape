@@ -8,7 +8,7 @@ cd ..
 rm -rf StatScape
 
 # Clone fresh from GitHub
-git clone https://github.com/YourUsername/StatScape.git
+git clone https://github.com/blackberrii/StatScape.git
 
 # Move back into the directory
 cd StatScape
