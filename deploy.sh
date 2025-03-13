@@ -3,10 +3,13 @@
 # Exit on any error
 set -e
 
-# Check if running on ARM
-if [ "$(uname -m)" != "aarch64" ]; then
-    echo "Error: This script expects ARM64 architecture"
-    exit 1
+# Ensure user has Docker permissions
+if ! groups | grep -q docker; then
+    echo "Adding user to docker group..."
+    sudo usermod -aG docker $USER
+    echo "Please log out and back in for group changes to take effect"
+    echo "Then run this script again"
+    exit 0
 fi
 
 echo "Updating system packages..."
@@ -33,11 +36,8 @@ docker rm statscape-bot 2>/dev/null || true
 
 echo "Starting new container..."
 docker run -d \
-  --name statscape-bot \
-  --restart unless-stopped \
-  --env-file .env \
-  -v /opt/statscape/data:/app/data \
-  statscape-bot
+    --name statscape-bot \
+    --restart unless-stopped \
+    statscape-bot
 
-echo "Bot deployment complete!"
-echo "You can check logs with: docker logs statscape-bot"
+echo "Container started successfully!"
