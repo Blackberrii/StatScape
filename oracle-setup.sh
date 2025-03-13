@@ -3,6 +3,14 @@
 # Exit on any error
 set -e
 
+echo "Installing Docker..."
+sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf -y install docker-ce docker-ce-cli containerd.io
+
+echo "Starting and enabling Docker service..."
+sudo systemctl start docker
+sudo systemctl enable docker
+
 echo "Creating installation directory..."
 sudo mkdir -p /opt/statscape
 sudo chown -R opc:opc /opt/statscape
