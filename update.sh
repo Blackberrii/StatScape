@@ -4,8 +4,10 @@
 cd /opt/statscape
 cp .env ../env_backup
 
-# Pull latest changes
-git pull origin main
+# Force reset and pull latest changes
+git reset --hard
+git clean -fd
+git pull --force origin main
 
 # Restore env file
 mv ../env_backup .env
