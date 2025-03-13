@@ -101,7 +101,6 @@ docker restart statscape-bot
 
 ## Support
 - Found a bug? [Open an issue](https://github.com/Blackberrii/StatScape/issues)
-- Need help? Join our [Discord server](YOUR_DISCORD_LINK)
 
 ## License
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
