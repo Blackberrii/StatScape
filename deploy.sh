@@ -37,7 +37,10 @@ docker rm statscape-bot 2>/dev/null || true
 echo "Starting new container..."
 docker run -d \
     --name statscape-bot \
-    --restart unless-stopped \
+    --restart always \
+    --env-file /opt/statscape/.env \
+    --memory="512m" \
+    --memory-swap="1g" \
     statscape-bot
 
 echo "Container started successfully!"

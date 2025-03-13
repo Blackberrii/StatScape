@@ -4,8 +4,9 @@ Requires=docker.service
 After=docker.service network.target
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
+Type=simple
+Restart=always
+RestartSec=10
 WorkingDirectory=/opt/statscape
 ExecStartPre=/bin/sh -c 'docker info > /dev/null 2>&1'
 ExecStart=/opt/statscape/deploy.sh
