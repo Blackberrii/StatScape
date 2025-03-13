@@ -12,7 +12,7 @@ A Discord bot for retrieving Old School RuneScape player statistics with an inte
 - Boss kill counts with pagination
 - Clue scroll completions
 - Minigame scores
-- Custom OSRS-themed emojis
+- OSRS emojis
 
 ## Commands
 The bot uses a simple command system:
