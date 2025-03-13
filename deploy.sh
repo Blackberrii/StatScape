@@ -34,8 +34,9 @@ sudo mkdir -p /opt/statscape/data
 sudo chown -R opc:opc /opt/statscape
 
 echo "Building Docker image..."
-# Debug: Show env file contents (hiding token)
-echo "Checking .env file:"
+echo "Verifying .env file exists and has content:"
+ls -l .env
+echo "ENV file contents (token hidden):"
 cat .env | sed 's/=.*/=HIDDEN/'
 
 docker build -t statscape-bot .
@@ -45,12 +46,19 @@ docker stop statscape-bot 2>/dev/null || true
 docker rm statscape-bot 2>/dev/null || true
 
 echo "Starting new container..."
+TOKEN=$(cat .env | grep DISCORD_BOT_TOKEN | cut -d'=' -f2)
+echo "Token found (first 10 chars): ${TOKEN:0:10}..."
+
 docker run -d \
     --name statscape-bot \
     --restart always \
-    -e DISCORD_BOT_TOKEN="$(cat .env | grep DISCORD_BOT_TOKEN | cut -d'=' -f2)" \
+    -e "DISCORD_BOT_TOKEN=${TOKEN}" \
     --memory="512m" \
     --memory-swap="1g" \
     statscape-bot
+
+# Verify environment variable in container
+echo "Verifying environment in container:"
+docker exec statscape-bot env | grep DISCORD
 
 echo "Container started successfully!"

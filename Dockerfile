@@ -7,5 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Debug: Print environment on startup
-CMD env && python bot.py
+# Show environment and run bot
+CMD echo "Environment variables:" && \
+    env | grep DISCORD && \
+    echo "Starting bot..." && \
+    python bot.py
